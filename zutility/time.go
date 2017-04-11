@@ -18,6 +18,24 @@ func (this *TimeMgr) Update() {
 	this.ApproximateTimeSecond = time.Now().Unix()
 }
 
+/*
+////////////////////////////////////////////////////////////////////////////////
+//使用方法
+import (
+	"zutility"
+)
+func main() {
+	zutility.Second(1, timerSecondTest)
+}
+
+//定时器,秒,测试
+func timerSecondTest() {
+	//todo
+
+	//继续循环该定时器
+	zutility.Second(1, timerSecondTest)
+}
+*/
 //定时器,秒
 func Second(value uint32, f func()) *time.Timer {
 	v := time.Duration(value)
