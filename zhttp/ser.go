@@ -1,9 +1,10 @@
 package zhttp
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/goz/zutility"
 )
 
 /*
@@ -22,6 +23,9 @@ func main() {
 func PhoneRegisterHttpHandler(w http.ResponseWriter, req *http.Request) {
 }
 */
+func SetLog(v *zutility.Log) {
+	gLog = v
+}
 
 type Server struct {
 }
@@ -33,6 +37,8 @@ func (this *Server) Run(ip string, port uint16) {
 	httpAddr := ip + ":" + strconv.Itoa(int(port))
 	err := http.ListenAndServe(httpAddr, nil)
 	if nil != err {
-		fmt.Println("ListenAndServe err: ", err, httpAddr)
+		gLog.Crit("ListenAndServe err: ", err, httpAddr)
 	}
 }
+
+var gLog *zutility.Log

@@ -29,20 +29,12 @@ func (this *PeerConn) Send(pb proto.Message, messageId MESSAGE_ID,
 	var sendBufAllLength PACKET_LENGTH = PACKET_LENGTH(len(msgBuf) + GProtoHeadLength)
 
 	headBuf := new(bytes.Buffer)
-	var data = []interface{}{
-		sendBufAllLength,
-		sessionId,
-		messageId,
-		resultId,
-		userId,
-	}
-	for _, v := range data {
-		err = binary.Write(headBuf, binary.LittleEndian, v)
-		if nil != err {
-			gLog.Error("binary.Write:", err)
-			return
-		}
-	}
+
+	binary.Write(headBuf, binary.LittleEndian, sendBufAllLength)
+	binary.Write(headBuf, binary.LittleEndian, sessionId)
+	binary.Write(headBuf, binary.LittleEndian, messageId)
+	binary.Write(headBuf, binary.LittleEndian, resultId)
+	binary.Write(headBuf, binary.LittleEndian, userId)
 
 	//todo [优化]使用一个发送
 	_, err = this.Conn.Write(headBuf.Bytes())
