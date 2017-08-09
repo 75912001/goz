@@ -23,6 +23,7 @@ func (this *PbFunMgr) Register(messageId ztcp.MESSAGE_ID, pbFun PB_FUN,
 	protoMessage proto.Message) (ret int) {
 	{
 		pb_fun_handle := this.find(messageId)
+		this.log.Trace(messageId)
 		if nil != pb_fun_handle {
 			this.log.Error("MessageId exist:", messageId)
 			return zutility.EC_SYS
