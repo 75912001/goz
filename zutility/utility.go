@@ -3,6 +3,7 @@ package zutility
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"hash/fnv"
 )
 
@@ -19,4 +20,21 @@ func HASH(s *string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(*s))
 	return h.Sum32()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//把请求包定义成一个结构体
+type JsonRequestBody struct {
+	Req string
+}
+
+//以指针的方式传入，但在使用时却可以不用关心
+// result 是函数内的临时变量，作为返回值可以直接返回调用层
+func (r *JsonRequestBody) Json2map() (s map[string]interface{}, err error) {
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(r.Req), &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
