@@ -55,7 +55,7 @@ func (this *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 	//todo 优化[使用信号通知的方式结束循环]
 	for this.IsRun {
 		time.Sleep(60 * time.Second)
-		gLog.Debug("server run...")
+		//		gLog.Debug("server run...")
 	}
 
 	gLog.Crit("server done...")
