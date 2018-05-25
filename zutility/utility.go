@@ -22,6 +22,17 @@ func HASH(s *string) uint32 {
 	return h.Sum32()
 }
 
+func HASH_EL(s string) uint32 {
+	var h uint32
+	rs := []rune(s)
+	n := len(rs)
+	for i := 0; i < n; i++ {
+		h = 31*h + uint32(rs[i])
+	}
+
+	return h
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 //把请求包定义成一个结构体

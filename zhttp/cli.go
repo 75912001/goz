@@ -1,6 +1,7 @@
 package zhttp
 
 import (
+	//	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +19,7 @@ func (this *Client) Get(url string) (err error) {
 		gLog.Error("######HttpClient.Get err:", err, url)
 		return err
 	}
+	//	fmt.Println(resp)
 	defer resp.Body.Close()
 
 	var contentLength int64
@@ -26,14 +28,16 @@ func (this *Client) Get(url string) (err error) {
 	} else {
 		contentLength = resp.ContentLength
 	}
+
 	this.Result = make([]byte, contentLength)
 
+	//	fmt.Println(resp.Body)
 	this.Result, err = ioutil.ReadAll(resp.Body)
+
 	if nil != err {
 		gLog.Error("######HttpClient.Get err:", err, resp.Body)
 		return err
 	}
-
 	return err
 }
 
