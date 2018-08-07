@@ -65,13 +65,29 @@ func (this *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 }
 
 func (this *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
+	var tempDelay time.Duration
 	for {
 		conn, err := listen.AcceptTCP()
-		if nil != err {
+		if nil != err { 
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				gLog.Crit("listen.Accept:", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+
 			gLog.Crit("listen.Accept:", err)
 			this.IsRun = false
 			return
 		}
+		tempDelay = 0
 
 		conn.SetNoDelay(noDelay)
 		conn.SetReadBuffer((int)(this.PacketLengthMax))
@@ -135,6 +151,7 @@ func (this *Server) handleConnection(conn *net.TCPConn) {
 		peerConn.parseProtoHead()
 
 		gLock.Lock()
+		//优化 使用cmd==0 的方式,表示断开链接. 将消息放入chan中. (可以去掉锁)
 		ret := this.OnPacket(&peerConn)
 		gLock.Unlock()
 
