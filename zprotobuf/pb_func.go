@@ -36,13 +36,13 @@ func (this *PbFunMgr) Register(messageId ztcp.MESSAGE_ID, pbFun PB_FUN,
 		this.pbFunMap[messageId] = pb_fun_handle
 	}
 
-	return
+	return 0
 }
 
 //收到消息
-func (this *PbFunMgr) OnRecv(peerConn *ztcp.PeerConn, obj interface{}) (ret int) {
-	packetLength := peerConn.RecvProtoHead.PacketLength
-	messageId := peerConn.RecvProtoHead.MessageId
+func (this *PbFunMgr) OnRecv(RecvProtoHead *ztcp.ProtoHead, RecvBuf []byte, obj interface{}) (ret int) {
+	packetLength := RecvProtoHead.PacketLength
+	messageId := RecvProtoHead.MessageId
 
 	pbFunHandle, ok := this.pbFunMap[messageId]
 	if !ok {
@@ -50,7 +50,7 @@ func (this *PbFunMgr) OnRecv(peerConn *ztcp.PeerConn, obj interface{}) (ret int)
 		return zutility.EC_DISCONNECT_PEER
 	}
 
-	err := proto.Unmarshal(peerConn.RecvBuf[ztcp.GProtoHeadLength:packetLength],
+	err := proto.Unmarshal(RecvBuf[ztcp.GProtoHeadLength:packetLength],
 		*pbFunHandle.protoMessage)
 	if nil != err {
 		this.log.Error("proto.Unmarshal:", messageId, err)

@@ -13,7 +13,7 @@ import (
 type PeerConn struct {
 	Conn          *net.TCPConn //连接
 	RecvBuf       []byte
-	RecvProtoHead protoHead
+	RecvProtoHead ProtoHead
 }
 
 //发送消息

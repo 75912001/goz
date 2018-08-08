@@ -17,10 +17,10 @@ var GProtoHeadLength int = sumSize5
 
 ////////////////////////////////////////////////////////////////////////////////
 //协议包头
-type protoHead struct {
+type ProtoHead struct {
 	PacketLength PACKET_LENGTH //总包长度,包含包头＋包体长度
 	SessionId    SESSION_ID    //会话id
-	MessageId    MESSAGE_ID    //消息号
+	MessageId    MESSAGE_ID    //消息号(0:断开链接)
 	ResultId     RESULT_ID     //结果id
 	UserId       USER_ID       //用户id
 }
