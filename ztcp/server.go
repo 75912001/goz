@@ -18,8 +18,8 @@ type Server struct {
 
 	OnInit           func() int                                                                 //初始化服务器
 	OnFini           func() int                                                                 //服务器结束
-	OnPeerConn       func(realPeerConn *PeerConn) int                                               //对端连上
-	OnPeerConnClosed func(realPeerConn *PeerConn) int                                               //对端连接关闭
+	OnPeerConn       func(realPeerConn *PeerConn) int                                           //对端连上
+	OnPeerConnClosed func(realPeerConn *PeerConn) int                                           //对端连接关闭
 	OnPacket         func(RecvProtoHead *ProtoHead, RecvBuf []byte, realPeerConn *PeerConn) int //客户端消息
 
 	peerConnRecvChan chan PeerConnRecvChan
@@ -141,45 +141,49 @@ func (this *Server) handleConnection(conn *net.TCPConn) {
 
 	var readIndex int
 	for {
+LoopRead:
 		readNum, err := peerConn.Conn.Read(peerConn.RecvBuf[readIndex:])
 		if nil != err {
 			gLog.Error("peerConn.Conn.Read:", readNum, err)
-			break
+			return
 		}
 
 		readIndex += readNum
-		if readIndex < GProtoHeadLength { //长度不足一个包头中的长度大小
-			continue
+		
+		for{
+			if readIndex < GProtoHeadLength { //长度不足一个包头中的长度大小
+				goto LoopRead
+			}
+	
+			/////////////////////////////////
+			peerConn.parseProtoHeadPacketLength()
+	
+			if int(peerConn.RecvProtoHead.PacketLength) < GProtoHeadLength {
+				gLog.Error("peerConn.RecvProtoHead.PacketLength:", peerConn.RecvProtoHead.PacketLength)
+				return
+			}
+	
+			if this.PacketLengthMax <= uint32(peerConn.RecvProtoHead.PacketLength) {
+				gLog.Error("this.PacketLengthMax:", this.PacketLengthMax, peerConn.RecvProtoHead.PacketLength)
+				return
+			}
+	
+			if readIndex < int(peerConn.RecvProtoHead.PacketLength) {
+				goto LoopRead
+			}
+	
+			//有完整的包
+			peerConn.parseProtoHead()
+	
+			var peerConnRecvChan PeerConnRecvChan
+			peerConnRecvChan.PeerConn.RecvBuf = make([]byte, peerConn.RecvProtoHead.PacketLength)
+			peerConnRecvChan.RealPeerConn = &peerConn
+			copy(peerConnRecvChan.PeerConn.RecvBuf, peerConn.RecvBuf[:peerConn.RecvProtoHead.PacketLength])
+			peerConnRecvChan.PeerConn.RecvProtoHead = peerConn.RecvProtoHead
+			this.peerConnRecvChan <- peerConnRecvChan
+	
+			copy(peerConn.RecvBuf, peerConn.RecvBuf[peerConn.RecvProtoHead.PacketLength:readIndex])
+			readIndex -= int(peerConn.RecvProtoHead.PacketLength)
 		}
-
-		peerConn.parseProtoHeadPacketLength()
-
-		if int(peerConn.RecvProtoHead.PacketLength) < GProtoHeadLength {
-			gLog.Error("peerConn.RecvProtoHead.PacketLength:", peerConn.RecvProtoHead.PacketLength)
-			break
-		}
-
-		if this.PacketLengthMax <= uint32(peerConn.RecvProtoHead.PacketLength) {
-			gLog.Error("this.PacketLengthMax:", this.PacketLengthMax, peerConn.RecvProtoHead.PacketLength)
-			break
-		}
-
-		if readIndex < int(peerConn.RecvProtoHead.PacketLength) {
-			continue
-		}
-
-		//有完整的包
-		peerConn.parseProtoHead()
-
-		var peerConnRecvChan PeerConnRecvChan
-		peerConnRecvChan.PeerConn.RecvBuf = make([]byte, peerConn.RecvProtoHead.PacketLength)
-
-		peerConnRecvChan.RealPeerConn = &peerConn
-		copy(peerConnRecvChan.PeerConn.RecvBuf, peerConn.RecvBuf[:peerConn.RecvProtoHead.PacketLength])
-		peerConnRecvChan.PeerConn.RecvProtoHead = peerConn.RecvProtoHead
-		this.peerConnRecvChan <- peerConnRecvChan
-
-		copy(peerConn.RecvBuf, peerConn.RecvBuf[peerConn.RecvProtoHead.PacketLength:readIndex])
-		readIndex -= int(peerConn.RecvProtoHead.PacketLength)
 	}
 }
