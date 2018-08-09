@@ -109,7 +109,6 @@ func (this *Ini) GetUint16(section string, key string, defaultValue string) (val
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
 //初始化
 func (p *Ini) init() {
 	p.sectionMap = make(sectionMap)

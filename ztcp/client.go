@@ -36,19 +36,19 @@ func (this *Client) Connect(ip string, port uint16, recvBufMax int) (err error) 
 
 func (this *Client) recv(recvBufMax int) {
 	//todo 优化[消耗内存过大]
-	this.PeerConn.RecvBuf = make([]byte, recvBufMax)
+	this.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
-		gLock.Lock()
+		Lock()
 		this.OnConnClosed(&this.PeerConn)
-		gLock.Unlock()
+		UnLock()
 
 		this.PeerConn.Conn.Close()
 	}()
 
 	var readIndex int
 	for {
-		readNum, err := this.PeerConn.Conn.Read(this.PeerConn.RecvBuf[readIndex:])
+		readNum, err := this.PeerConn.Conn.Read(this.PeerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("Conn.Read:", readNum, err)
 			break
@@ -62,27 +62,27 @@ func (this *Client) recv(recvBufMax int) {
 
 		this.PeerConn.parseProtoHeadPacketLength()
 
-		if int(this.PeerConn.RecvProtoHead.PacketLength) < GProtoHeadLength {
-			gLog.Error("this.PeerConn.RecvProtoHead.PacketLength:", this.PeerConn.RecvProtoHead.PacketLength)
+		if int(this.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
+			gLog.Error("this.PeerConn.ProtoHead.PacketLength:", this.PeerConn.ProtoHead.PacketLength)
 			break
 		}
 
-		if readIndex < int(this.PeerConn.RecvProtoHead.PacketLength) {
+		if readIndex < int(this.PeerConn.ProtoHead.PacketLength) {
 			continue
 		}
 
 		//有完整的包
 		this.PeerConn.parseProtoHead()
 
-		gLock.Lock()
+		Lock()
 		ret := this.OnPacket(&this.PeerConn)
-		gLock.Unlock()
+		UnLock()
 
 		if zutility.EC_DISCONNECT_PEER == ret {
 			gLog.Error("OnSerPacket:", zutility.EC_DISCONNECT_PEER)
 			break
 		}
-		copy(this.PeerConn.RecvBuf, this.PeerConn.RecvBuf[this.PeerConn.RecvProtoHead.PacketLength:readIndex])
-		readIndex -= int(this.PeerConn.RecvProtoHead.PacketLength)
+		copy(this.PeerConn.Buf, this.PeerConn.Buf[this.PeerConn.ProtoHead.PacketLength:readIndex])
+		readIndex -= int(this.PeerConn.ProtoHead.PacketLength)
 	}
 }
