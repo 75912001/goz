@@ -13,6 +13,10 @@ func IsLinux() bool {
 	return `linux` == runtime.GOOS
 }
 
+func IsMac() bool {
+	return `darwin` == runtime.GOOS
+}
+
 func IsIos() bool {
 	return `darwin` == runtime.GOOS
 }

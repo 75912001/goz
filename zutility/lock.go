@@ -1,8 +1,6 @@
 package zutility
 
-import (
-	//"sync"
-)
+//"sync"
 
 //func Lock() {
 //	gLock.Lock()

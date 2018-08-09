@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	LOG_CHAN_MAX_CNT = 100 //日志channel的最大数量
+	LOG_CHAN_MAX_CNT = 1000 //日志channel的最大数量
 )
 
 //日志等级
