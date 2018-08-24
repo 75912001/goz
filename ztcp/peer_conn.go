@@ -17,7 +17,6 @@ type PeerConn struct {
 }
 
 //发送消息
-//todo 传送指针? pb
 func (this *PeerConn) Send(pb proto.Message, messageId MESSAGE_ID,
 	sessionId SESSION_ID, userId USER_ID, resultId RESULT_ID) (err error) {
 	msgBuf, err := proto.Marshal(pb)
@@ -36,7 +35,6 @@ func (this *PeerConn) Send(pb proto.Message, messageId MESSAGE_ID,
 	binary.Write(headBuf, binary.LittleEndian, resultId)
 	binary.Write(headBuf, binary.LittleEndian, userId)
 
-	//todo [优化]使用一个发送
 	_, err = this.Conn.Write(headBuf.Bytes())
 	if nil != err {
 		gLog.Error("PeerConn.Conn.Write:", err)

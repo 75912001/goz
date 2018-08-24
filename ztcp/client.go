@@ -3,15 +3,12 @@ package ztcp
 import (
 	"net"
 	"strconv"
-
-	"github.com/goz/zutility"
 )
 
 //己方作为客户端
 type Client struct {
 	OnConnClosed func(peerConn *PeerConn) int //对端连接关闭
 	//对端消息
-	//返回:EC_DISCONNECT_PEER断开服务端
 	OnPacket func(peerConn *PeerConn) int
 	PeerConn PeerConn
 }
@@ -35,7 +32,7 @@ func (this *Client) Connect(ip string, port uint16, recvBufMax int) (err error) 
 }
 
 func (this *Client) recv(recvBufMax int) {
-	//todo 优化[消耗内存过大]
+	//优化[消耗内存过大]
 	this.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
@@ -75,13 +72,9 @@ func (this *Client) recv(recvBufMax int) {
 		this.PeerConn.parseProtoHead()
 
 		Lock()
-		ret := this.OnPacket(&this.PeerConn)
+		this.OnPacket(&this.PeerConn)
 		UnLock()
 
-		if zutility.EC_DISCONNECT_PEER == ret {
-			gLog.Error("OnSerPacket:", zutility.EC_DISCONNECT_PEER)
-			break
-		}
 		copy(this.PeerConn.Buf, this.PeerConn.Buf[this.PeerConn.ProtoHead.PacketLength:readIndex])
 		readIndex -= int(this.PeerConn.ProtoHead.PacketLength)
 	}

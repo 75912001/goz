@@ -7,6 +7,42 @@ import (
 	"hash/fnv"
 )
 
+//-2147483648
+const INT32_MIN = ^INT32_MAX
+
+//2147483647
+const INT32_MAX = int32(^uint32(0) >> 1)
+
+//-9223372036854775808
+const INT64_MIN = ^INT64_MAX
+
+//9223372036854775807
+const INT64_MAX = int64(^uint64(0) >> 1)
+
+//0
+const UINT32_MIN uint32 = 0
+
+//4294967295
+const UINT32_MAX = ^uint32(0)
+
+//0
+const UNT64_MIN = ^UNT64_MAX
+
+//18446744073709551615
+const UNT64_MAX = ^uint64(0)
+
+//-9223372036854775808
+const INT_MIN = ^INT_MAX
+
+//9223372036854775807
+const INT_MAX = int(^uint(0) >> 1)
+
+//0
+const UINT_MIN uint = 0
+
+//18446744073709551615
+const UINT_MAX = ^uint(0)
+
 ////////////////////////////////////////////////////////////////////////////////
 //md5
 func GenMd5(s *string) (value string) {

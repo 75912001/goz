@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	RECV_CHAN_MAX_CNT = 2000 //收数据channel的最大数量
+	RECV_CHAN_MAX_CNT = 1000 //收数据channel的最大数量
 )
 
 type PeerConnRecvChan struct {
@@ -27,7 +27,6 @@ type Server struct {
 	OnPacket         func(RecvProtoHead *ProtoHead, RecvBuf []byte, realPeerConn *PeerConn) int //客户端消息
 
 	peerConnRecvChan chan PeerConnRecvChan
-	peerConnSendChan chan PeerConnRecvChan
 }
 
 //运行
@@ -77,7 +76,6 @@ func (this *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 			UnLock()
 		}
 	}()
-	//优化  这里添加一个chan 来处理此socket 发送出去的数据
 
 	//优化[使用信号通知的方式结束循环]
 	for this.IsRun {
@@ -137,7 +135,7 @@ func (this *Server) handleConnection(conn *net.TCPConn) {
 	UnLock()
 
 	defer func() {
-		//使用MessageId ==0 的方式,表示断开链接.
+		//使用MessageId == 0 的方式,表示断开链接.
 		var peerConnRecvChan PeerConnRecvChan
 		peerConnRecvChan.RealPeerConn = &peerConn
 		peerConnRecvChan.PeerConn.ProtoHead.MessageId = 0

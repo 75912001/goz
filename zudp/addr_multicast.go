@@ -34,13 +34,10 @@ type AddrMulticast struct {
 	selfServerAddr  serverAddr    //自己服务器地址信息
 }
 
-/*
-bug:该组播会收到其他组的消息,比如本组为#mcast_ip=239.0.0.1#mcast_port=5001,
-也会收到#mcast_ip=239.0.0.2#mcast_port=5001的消息
-*/
 func (this *AddrMulticast) Run(ip string, port uint16, netName string,
 	addrName string, addrId uint32, addrIp string, addrPort uint16, addrData string,
 	log *zutility.Log) (err error) {
+
 	this.selfServerAddr.name = addrName
 	this.selfServerAddr.id = addrId
 	this.selfServerAddr.ip = addrIp
@@ -73,6 +70,7 @@ func (this *AddrMulticast) Run(ip string, port uint16, netName string,
 	str_addr_ipv4, _ := net.ResolveIPAddr("ip4", ip)
 	err = pc.JoinGroup(iface, str_addr_ipv4)
 	if nil != err {
+		gLog.Crit("err:", err, str_addr_ipv4)
 		return
 	}
 
