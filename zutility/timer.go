@@ -5,6 +5,25 @@ import (
 	"time"
 )
 
+/*
+//使用方法
+func cb(owner interface{}, data interface{}) int {
+	fmt.Println(data.(int64))
+	return 0
+}
+
+func main() {
+	var t zutility.TimeMgr
+	t.Update()
+	zutility.GTimerMgr.Run(100)
+
+	zutility.Lock()
+	for i := int64(1); i < 100; i++ {
+		zutility.GTimerMgr.AddSecond(cb, nil, i, t.ApproximateTimeSecond+i)
+	}
+	zutility.UnLock()
+}
+*/
 var GTimerMgr timerMgr
 
 //回调定时器函数
@@ -14,8 +33,6 @@ var GTimerMgr timerMgr
 type OnTimerFun func(owner interface{}, data interface{}) int
 
 type TimerSecond struct {
-	//	entry      *list.List
-	//	spriteList *list.List
 	tvecRootIdx int
 	element     *list.Element
 	expire      int64
@@ -36,9 +53,11 @@ type TimerMillisecond struct {
 //millisecond:毫秒间隔(如50,则每50毫秒扫描一次毫秒定时器)
 func (this *timerMgr) Run(millisecond int64) {
 	for idx, v := range this.secondVec {
+		v = new(tvecRoot)
 		v.init()
 		v.expire = genExpire(idx)
 		v.min_expire = INT64_MAX
+		this.secondVec[idx] = v
 	}
 	this.millisecondList = list.New()
 
@@ -47,24 +66,47 @@ func (this *timerMgr) Run(millisecond int64) {
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
-			gTimeMgr.Update()
 
+			Lock()
+			gTimeMgr.Update()
 			this.scanSecond()
+			UnLock()
 		}
 	}()
 	//每millisecond个毫秒更新
 	go func() {
 		for {
 			time.Sleep(time.Duration(millisecond) * time.Millisecond)
-			gTimeMgr.Update()
 
+			Lock()
+			gTimeMgr.Update()
 			this.scanMillisecond()
+			UnLock()
 		}
 	}()
 }
 
 func (this *timerMgr) AddSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64) (t *TimerSecond) {
 	return this.addSecond(cb, owner, data, expire, nil)
+}
+
+func (this *timerMgr) DelSecond(t *TimerSecond) {
+	this.secondVec[t.tvecRootIdx].data.Remove(t.element)
+}
+
+func (this *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expireMillisecond int64) (t *TimerMillisecond) {
+	t = new(TimerMillisecond)
+	t.data = data
+	t.expire = expireMillisecond
+	t.function = cb
+	t.owner = owner
+	t.element = this.millisecondList.PushBack(t)
+
+	return t
+}
+
+func (this *timerMgr) DelMillisecond(t *TimerMillisecond) {
+	this.millisecondList.Remove(t.element)
 }
 
 func (this *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64, oldTimerSecond *TimerSecond) (t *TimerSecond) {
@@ -84,30 +126,11 @@ func (this *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface
 	return oldTimerSecond
 }
 
-func (this *timerMgr) DelSecond(t *TimerSecond) {
-	this.secondVec[t.tvecRootIdx].data.Remove(t.element)
-}
-
-func (this *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64) (t *TimerMillisecond) {
-	t = new(TimerMillisecond)
-	t.data = data
-	t.expire = expire
-	t.function = cb
-	t.owner = owner
-	t.element = this.millisecondList.PushBack(t)
-
-	return t
-}
-
-func (this *timerMgr) DelMillisecond(t *TimerMillisecond) {
-	this.millisecondList.Remove(t.element)
-}
-
 ////////////////////////////////////////////////////////////////////////////
 //定时器管理器
 type timerMgr struct {
 	//秒,数据
-	secondVec [eTimerVecSize]tvecRoot
+	secondVec [eTimerVecSize]*tvecRoot
 	//毫秒,数据
 	millisecondList *list.List
 }
@@ -164,12 +187,12 @@ func (this *timerMgr) scanSecond() {
 				new_idx := this.findPrevTvecRootIdx(t.expire-gTimeMgr.ApproximateTimeSecond, idx)
 				if idx != new_idx {
 					next = e.Next()
-					this.secondVec[0].data.Remove(e)
+					this.secondVec[idx].data.Remove(e)
 
 					this.addSecond(t.function, t.owner, t.data, t.expire, t)
 				} else {
-					if t.expire < this.secondVec[0].min_expire {
-						this.secondVec[0].min_expire = t.expire
+					if t.expire < this.secondVec[idx].min_expire {
+						this.secondVec[idx].min_expire = t.expire
 					}
 					next = e.Next()
 				}
@@ -188,12 +211,22 @@ func (this *timerMgr) findPrevTvecRootIdx(diff int64, srcIdx int) (idx int) {
 		}
 	}
 	return srcIdx
-
 }
 
 //扫描毫秒级定时器
 func (this *timerMgr) scanMillisecond() {
-	//todo
+	var next *list.Element
+	for e := this.millisecondList.Front(); e != nil; e = next {
+		t := e.Value.(*TimerMillisecond)
+		if t.expire <= gTimeMgr.ApproximateTimeMillisecond {
+			t.function(t.owner, t.data)
+
+			next = e.Next()
+			this.millisecondList.Remove(e)
+		} else {
+			next = e.Next()
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -209,33 +242,8 @@ func (this *tvecRoot) init() {
 	this.data = list.New()
 }
 
+//4,8,16,32,64,128,256...
 func genExpire(idx int) (expire int64) {
 	expire = 1 << (uint)(idx+2)
 	return expire
-}
-
-////////////////////////////////////////////////////////////////////////////
-
-/*
-////////////////////////////////////////////////////////////////////////////////
-//使用方法
-import (
-	"zutility"
-)
-func main() {
-	zutility.Second(1, timerSecondTest)
-}
-
-//定时器,秒,测试
-func timerSecondTest() {
-	//todo
-
-	//继续循环该定时器
-	zutility.Second(1, timerSecondTest)
-}
-*/
-//定时器,秒
-func Second(value uint32, f func()) *time.Timer {
-	v := time.Duration(value)
-	return time.AfterFunc(v*time.Second, f)
 }
