@@ -3,6 +3,8 @@ package ztcp
 import (
 	"net"
 	"strconv"
+
+	"github.com/goz/zutility"
 )
 
 //己方作为客户端
@@ -36,9 +38,9 @@ func (this *Client) recv(recvBufMax int) {
 	this.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
-		Lock()
+		zutility.Lock()
 		this.OnConnClosed(&this.PeerConn)
-		UnLock()
+		zutility.UnLock()
 
 		this.PeerConn.Conn.Close()
 	}()
@@ -71,9 +73,9 @@ func (this *Client) recv(recvBufMax int) {
 		//有完整的包
 		this.PeerConn.parseProtoHead()
 
-		Lock()
+		zutility.Lock()
 		this.OnPacket(&this.PeerConn)
-		UnLock()
+		zutility.UnLock()
 
 		copy(this.PeerConn.Buf, this.PeerConn.Buf[this.PeerConn.ProtoHead.PacketLength:readIndex])
 		readIndex -= int(this.PeerConn.ProtoHead.PacketLength)

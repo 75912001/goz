@@ -4,6 +4,8 @@ import (
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/goz/zutility"
 )
 
 const (
@@ -49,14 +51,14 @@ func (this *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 		return
 	}
 
-	Lock()
+	zutility.Lock()
 	this.OnInit()
-	UnLock()
+	zutility.UnLock()
 
 	defer func() {
-		Lock()
+		zutility.Lock()
 		this.OnFini()
-		UnLock()
+		zutility.UnLock()
 
 		listen.Close()
 	}()
@@ -66,20 +68,20 @@ func (this *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 	go func() {
 		//处理收到的数据
 		for v := range this.peerConnRecvChan {
-			Lock()
+			zutility.Lock()
 			if 0 == v.PeerConn.ProtoHead.MessageId {
 				this.OnPeerConnClosed(v.RealPeerConn)
 				v.RealPeerConn.Conn.Close()
 			} else {
 				this.OnPacket(&v.PeerConn.ProtoHead, v.PeerConn.Buf, v.RealPeerConn)
 			}
-			UnLock()
+			zutility.UnLock()
 		}
 	}()
 
 	//优化[使用信号通知的方式结束循环]
 	for this.IsRun {
-		time.Sleep(60 * time.Second)
+		time.Sleep(1 * time.Second)
 		//gLog.Debug("server run...")
 	}
 
@@ -130,9 +132,9 @@ func (this *Server) handleConnection(conn *net.TCPConn) {
 	var peerIp = peerConn.Conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIp)
 
-	Lock()
+	zutility.Lock()
 	this.OnPeerConn(&peerConn)
-	UnLock()
+	zutility.UnLock()
 
 	defer func() {
 		//使用MessageId == 0 的方式,表示断开链接.
