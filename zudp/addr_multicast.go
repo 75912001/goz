@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goz/ztcp"
 	"github.com/goz/zutility"
 	"golang.org/x/net/ipv4"
 )
@@ -166,9 +165,9 @@ func (this *AddrMulticast) handleRecv() {
 
 				this.add(ser.name, ser.id, &ser)
 			}
-			ztcp.Lock()
+			zutility.Lock()
 			this.OnAddrMulticast(ser.name, ser.id, ser.ip, ser.port, ser.data)
-			ztcp.UnLock()
+			zutility.UnLock()
 		}
 	}
 }
