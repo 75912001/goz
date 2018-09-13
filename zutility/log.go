@@ -52,7 +52,7 @@ func (this *Log) Init(name string) (err error) {
 	if nil != err {
 		return
 	}
-	this.logger = log.New(this.file, "", log.Ldate|log.Ltime) //|log.Llongfile)
+	this.logger = log.New(this.file, "", log.Ltime) //log.Ldate|log.Llongfile)
 
 	this.logChan = make(chan string, LOG_CHAN_MAX_CNT)
 	go this.onOutPut()
@@ -146,7 +146,7 @@ func (this *Log) onOutPut() {
 			this.yyyymmdd = now_yyyymmdd
 			log_name := this.name_prefix + IntToString(this.yyyymmdd)
 			this.file, _ = os.OpenFile(log_name, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-			this.logger = log.New(this.file, "", log.Ldate|log.Ltime) //|log.Llongfile)
+			this.logger = log.New(this.file, "", log.Ltime) //log.Ldate|log.Llongfile)
 		}
 
 		this.logger.Print(<-this.logChan)

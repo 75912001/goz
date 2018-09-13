@@ -58,6 +58,7 @@ func HASH(s *string) uint32 {
 	return h.Sum32()
 }
 
+//配合libel库
 func HASH_EL(s *string) uint32 {
 	var h uint32
 	rs := []rune(*s)

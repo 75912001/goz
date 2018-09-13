@@ -27,9 +27,6 @@ func main() {
 var GTimerMgr timerMgr
 
 //回调定时器函数
-//回调函数中:
-//1.可增加定时器
-//2.不可删除定时器
 type OnTimerFun func(owner interface{}, data interface{}) int
 
 type TimerSecond struct {
@@ -39,6 +36,7 @@ type TimerSecond struct {
 	owner       interface{}
 	data        interface{}
 	function    OnTimerFun
+	invalid     bool //无效(true:不执行,扫描时自动删除)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -48,6 +46,7 @@ type TimerMillisecond struct {
 	owner    interface{}
 	data     interface{}
 	function OnTimerFun
+	invalid  bool //无效(true:不执行,扫描时自动删除)
 }
 
 //millisecond:毫秒间隔(如50,则每50毫秒扫描一次毫秒定时器)
@@ -91,7 +90,8 @@ func (this *timerMgr) AddSecond(cb OnTimerFun, owner interface{}, data interface
 }
 
 func (this *timerMgr) DelSecond(t *TimerSecond) {
-	this.secondVec[t.tvecRootIdx].data.Remove(t.element)
+	t.invalid = true
+	//this.secondVec[t.tvecRootIdx].data.Remove(t.element)
 }
 
 func (this *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expireMillisecond int64) (t *TimerMillisecond) {
@@ -101,12 +101,12 @@ func (this *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data inte
 	t.function = cb
 	t.owner = owner
 	t.element = this.millisecondList.PushBack(t)
-
 	return t
 }
 
 func (this *timerMgr) DelMillisecond(t *TimerMillisecond) {
-	this.millisecondList.Remove(t.element)
+	t.invalid = true
+	//this.millisecondList.Remove(t.element)
 }
 
 func (this *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64, oldTimerSecond *TimerSecond) (t *TimerSecond) {
@@ -164,9 +164,13 @@ func (this *timerMgr) scanSecond() {
 		this.secondVec[0].min_expire = INT64_MAX
 		for e := this.secondVec[0].data.Front(); e != nil; e = next {
 			t := e.Value.(*TimerSecond)
+			if t.invalid {
+				next = e.Next()
+				this.secondVec[0].data.Remove(e)
+				continue
+			}
 			if t.expire <= gTimeMgr.ApproximateTimeSecond {
 				t.function(t.owner, t.data)
-
 				next = e.Next()
 				this.secondVec[0].data.Remove(e)
 			} else {
@@ -184,11 +188,15 @@ func (this *timerMgr) scanSecond() {
 			this.secondVec[idx].min_expire = INT64_MAX
 			for e := this.secondVec[idx].data.Front(); e != nil; e = next {
 				t := e.Value.(*TimerSecond)
+				if t.invalid {
+					next = e.Next()
+					this.secondVec[idx].data.Remove(e)
+					continue
+				}
 				new_idx := this.findPrevTvecRootIdx(t.expire-gTimeMgr.ApproximateTimeSecond, idx)
 				if idx != new_idx {
 					next = e.Next()
 					this.secondVec[idx].data.Remove(e)
-
 					this.addSecond(t.function, t.owner, t.data, t.expire, t)
 				} else {
 					if t.expire < this.secondVec[idx].min_expire {
@@ -218,9 +226,13 @@ func (this *timerMgr) scanMillisecond() {
 	var next *list.Element
 	for e := this.millisecondList.Front(); e != nil; e = next {
 		t := e.Value.(*TimerMillisecond)
+		if t.invalid {
+			next = e.Next()
+			this.millisecondList.Remove(e)
+			continue
+		}
 		if t.expire <= gTimeMgr.ApproximateTimeMillisecond {
 			t.function(t.owner, t.data)
-
 			next = e.Next()
 			this.millisecondList.Remove(e)
 		} else {
