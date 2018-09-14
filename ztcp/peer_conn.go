@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net"
-
-	"github.com/golang/protobuf/proto"
 )
 
 /////////////////////////////////////////////////////////////////////////////
@@ -13,34 +11,13 @@ import (
 type PeerConn struct {
 	Conn      *net.TCPConn //连接
 	Buf       []byte
-	ProtoHead ProtoHead
+	ProtoHead ProtoHead //优化 将这个字段去除,与应用层解耦
+	//	ph        interface{}
 }
 
 //发送消息
-func (this *PeerConn) Send(pb proto.Message, messageId MESSAGE_ID,
-	sessionId SESSION_ID, userId USER_ID, resultId RESULT_ID) (err error) {
-	msgBuf, err := proto.Marshal(pb)
-	if nil != err {
-		gLog.Error("proto.Marshal:", err)
-		return
-	}
-
-	var sendBufAllLength PACKET_LENGTH = PACKET_LENGTH(len(msgBuf) + GProtoHeadLength)
-
-	headBuf := new(bytes.Buffer)
-
-	binary.Write(headBuf, binary.LittleEndian, sendBufAllLength)
-	binary.Write(headBuf, binary.LittleEndian, sessionId)
-	binary.Write(headBuf, binary.LittleEndian, messageId)
-	binary.Write(headBuf, binary.LittleEndian, resultId)
-	binary.Write(headBuf, binary.LittleEndian, userId)
-
-	_, err = this.Conn.Write(headBuf.Bytes())
-	if nil != err {
-		gLog.Error("PeerConn.Conn.Write:", err)
-		return
-	}
-	_, err = this.Conn.Write(msgBuf)
+func (this *PeerConn) Send(msgBuf *bytes.Buffer) (err error) {
+	_, err = this.Conn.Write(msgBuf.Bytes())
 	if nil != err {
 		gLog.Error("PeerConn.Conn.Write:", err)
 		return

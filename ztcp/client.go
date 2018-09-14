@@ -10,6 +10,8 @@ import (
 //己方作为客户端
 type Client struct {
 	OnConnClosed func(peerConn *PeerConn) int //对端连接关闭
+	//解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
+	OnParseProtoHead func(peerConn *PeerConn, length int) int
 	//对端消息
 	OnPacket func(peerConn *PeerConn) int
 	PeerConn PeerConn
@@ -55,29 +57,44 @@ func (this *Client) recv(recvBufMax int) {
 
 		readIndex += readNum
 
-		if readIndex < GProtoHeadLength { //长度不足一个包头中的长度大小
-			continue
+		var packetLength int
+		{
+			defer func() {
+				zutility.UnLock()
+			}()
+			zutility.Lock()
+			packetLength = this.OnParseProtoHead(&this.PeerConn, readIndex)
+			if 0 == packetLength {
+				continue
+			}
+			if -1 == packetLength {
+				gLog.Error("packetLength")
+				break
+			}
+			this.OnPacket(&this.PeerConn)
 		}
+		copy(this.PeerConn.Buf, this.PeerConn.Buf[packetLength:readIndex])
+		readIndex -= packetLength
 
-		this.PeerConn.parseProtoHeadPacketLength()
+		//以下移到应用层OnParseProtoHead中
+		/*
+			if readIndex < GProtoHeadLength { //长度不足一个包头中的长度大小
+				continue
+			}
 
-		if int(this.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
-			gLog.Error("this.PeerConn.ProtoHead.PacketLength:", this.PeerConn.ProtoHead.PacketLength)
-			break
-		}
+			this.PeerConn.parseProtoHeadPacketLength()
 
-		if readIndex < int(this.PeerConn.ProtoHead.PacketLength) {
-			continue
-		}
+			if int(this.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
+				gLog.Error("this.PeerConn.ProtoHead.PacketLength:", this.PeerConn.ProtoHead.PacketLength)
+				break
+			}
 
-		//有完整的包
-		this.PeerConn.parseProtoHead()
+			if readIndex < int(this.PeerConn.ProtoHead.PacketLength) {
+				continue
+			}
 
-		zutility.Lock()
-		this.OnPacket(&this.PeerConn)
-		zutility.UnLock()
-
-		copy(this.PeerConn.Buf, this.PeerConn.Buf[this.PeerConn.ProtoHead.PacketLength:readIndex])
-		readIndex -= int(this.PeerConn.ProtoHead.PacketLength)
+			//有完整的包
+			this.PeerConn.parseProtoHead()
+		*/
 	}
 }
