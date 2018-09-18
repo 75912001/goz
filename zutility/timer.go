@@ -24,11 +24,14 @@ func main() {
 	zutility.UnLock()
 }
 */
+
+//GTimerMgr 定时器管理器
 var GTimerMgr timerMgr
 
-//回调定时器函数
+//OnTimerFun 回调定时器函数
 type OnTimerFun func(owner interface{}, data interface{}) int
 
+//TimerSecond 秒级定时器
 type TimerSecond struct {
 	tvecRootIdx int
 	element     *list.Element
@@ -39,7 +42,7 @@ type TimerSecond struct {
 	invalid     bool //无效(true:不执行,扫描时自动删除)
 }
 
-////////////////////////////////////////////////////////////////////////////
+//TimerMillisecond 毫秒级定时器
 type TimerMillisecond struct {
 	element  *list.Element
 	expire   int64
@@ -49,16 +52,16 @@ type TimerMillisecond struct {
 	invalid  bool //无效(true:不执行,扫描时自动删除)
 }
 
-//millisecond:毫秒间隔(如50,则每50毫秒扫描一次毫秒定时器)
-func (this *timerMgr) Run(millisecond int64) {
-	for idx, v := range this.secondVec {
+//Run millisecond:毫秒间隔(如50,则每50毫秒扫描一次毫秒定时器)
+func (p *timerMgr) Run(millisecond int64) {
+	for idx, v := range p.secondVec {
 		v = new(tvecRoot)
 		v.init()
 		v.expire = genExpire(idx)
-		v.min_expire = INT64_MAX
-		this.secondVec[idx] = v
+		v.minExpire = Int64Max
+		p.secondVec[idx] = v
 	}
-	this.millisecondList = list.New()
+	p.millisecondList = list.New()
 
 	//每秒更新
 	gTimeMgr.Update()
@@ -68,7 +71,7 @@ func (this *timerMgr) Run(millisecond int64) {
 
 			Lock()
 			gTimeMgr.Update()
-			this.scanSecond()
+			p.scanSecond()
 			UnLock()
 		}
 	}()
@@ -79,37 +82,41 @@ func (this *timerMgr) Run(millisecond int64) {
 
 			Lock()
 			gTimeMgr.Update()
-			this.scanMillisecond()
+			p.scanMillisecond()
 			UnLock()
 		}
 	}()
 }
 
-func (this *timerMgr) AddSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64) (t *TimerSecond) {
-	return this.addSecond(cb, owner, data, expire, nil)
+//AddSecond 添加秒级定时器
+func (p *timerMgr) AddSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64) (t *TimerSecond) {
+	return p.addSecond(cb, owner, data, expire, nil)
 }
 
-func (this *timerMgr) DelSecond(t *TimerSecond) {
+//DelSecond 删除秒级定时器
+func (p *timerMgr) DelSecond(t *TimerSecond) {
 	t.invalid = true
-	//this.secondVec[t.tvecRootIdx].data.Remove(t.element)
+	//p.secondVec[t.tvecRootIdx].data.Remove(t.element)
 }
 
-func (this *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expireMillisecond int64) (t *TimerMillisecond) {
+//AddMillisecond 添加毫秒级定时器
+func (p *timerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expireMillisecond int64) (t *TimerMillisecond) {
 	t = new(TimerMillisecond)
 	t.data = data
 	t.expire = expireMillisecond
 	t.function = cb
 	t.owner = owner
-	t.element = this.millisecondList.PushBack(t)
+	t.element = p.millisecondList.PushBack(t)
 	return t
 }
 
-func (this *timerMgr) DelMillisecond(t *TimerMillisecond) {
+//DelMillisecond 删除毫秒级定时器
+func (p *timerMgr) DelMillisecond(t *TimerMillisecond) {
 	t.invalid = true
-	//this.millisecondList.Remove(t.element)
+	//p.millisecondList.Remove(t.element)
 }
 
-func (this *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64, oldTimerSecond *TimerSecond) (t *TimerSecond) {
+func (p *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64, oldTimerSecond *TimerSecond) (t *TimerSecond) {
 	if nil == oldTimerSecond {
 		oldTimerSecond = new(TimerSecond)
 	}
@@ -117,11 +124,11 @@ func (this *timerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface
 	oldTimerSecond.expire = expire
 	oldTimerSecond.function = cb
 	oldTimerSecond.owner = owner
-	oldTimerSecond.tvecRootIdx = this.findTvecRootIdx(expire)
-	oldTimerSecond.element = this.secondVec[oldTimerSecond.tvecRootIdx].data.PushBack(oldTimerSecond)
+	oldTimerSecond.tvecRootIdx = p.findTvecRootIdx(expire)
+	oldTimerSecond.element = p.secondVec[oldTimerSecond.tvecRootIdx].data.PushBack(oldTimerSecond)
 
-	if expire < this.secondVec[oldTimerSecond.tvecRootIdx].min_expire {
-		this.secondVec[oldTimerSecond.tvecRootIdx].min_expire = expire
+	if expire < p.secondVec[oldTimerSecond.tvecRootIdx].minExpire {
+		p.secondVec[oldTimerSecond.tvecRootIdx].minExpire = expire
 	}
 	return oldTimerSecond
 }
@@ -142,9 +149,9 @@ var gTimeMgr TimeMgr
 
 ////////////////////////////////////////////////////////////////////////////
 //根据到期时间找到时间轮的序号
-func (this *timerMgr) findTvecRootIdx(expire int64) (idx int) {
+func (p *timerMgr) findTvecRootIdx(expire int64) (idx int) {
 	var diff = expire - gTimeMgr.ApproximateTimeSecond
-	for _, v := range this.secondVec {
+	for _, v := range p.secondVec {
 		if diff <= v.expire {
 			break
 		}
@@ -157,25 +164,25 @@ func (this *timerMgr) findTvecRootIdx(expire int64) (idx int) {
 }
 
 //扫描秒级定时器
-func (this *timerMgr) scanSecond() {
+func (p *timerMgr) scanSecond() {
 	var next *list.Element
-	if this.secondVec[0].min_expire <= gTimeMgr.ApproximateTimeSecond {
+	if p.secondVec[0].minExpire <= gTimeMgr.ApproximateTimeSecond {
 		//更新最小过期时间戳
-		this.secondVec[0].min_expire = INT64_MAX
-		for e := this.secondVec[0].data.Front(); e != nil; e = next {
+		p.secondVec[0].minExpire = Int64Max
+		for e := p.secondVec[0].data.Front(); e != nil; e = next {
 			t := e.Value.(*TimerSecond)
 			if t.invalid {
 				next = e.Next()
-				this.secondVec[0].data.Remove(e)
+				p.secondVec[0].data.Remove(e)
 				continue
 			}
 			if t.expire <= gTimeMgr.ApproximateTimeSecond {
 				t.function(t.owner, t.data)
 				next = e.Next()
-				this.secondVec[0].data.Remove(e)
+				p.secondVec[0].data.Remove(e)
 			} else {
-				if t.expire < this.secondVec[0].min_expire {
-					this.secondVec[0].min_expire = t.expire
+				if t.expire < p.secondVec[0].minExpire {
+					p.secondVec[0].minExpire = t.expire
 				}
 				next = e.Next()
 			}
@@ -184,23 +191,23 @@ func (this *timerMgr) scanSecond() {
 
 	//更新时间轮,从序号为1的数组开始
 	for idx := 1; idx < eTimerVecSize; idx++ {
-		if (this.secondVec[idx].min_expire - gTimeMgr.ApproximateTimeSecond) < genExpire(idx) {
-			this.secondVec[idx].min_expire = INT64_MAX
-			for e := this.secondVec[idx].data.Front(); e != nil; e = next {
+		if (p.secondVec[idx].minExpire - gTimeMgr.ApproximateTimeSecond) < genExpire(idx) {
+			p.secondVec[idx].minExpire = Int64Max
+			for e := p.secondVec[idx].data.Front(); e != nil; e = next {
 				t := e.Value.(*TimerSecond)
 				if t.invalid {
 					next = e.Next()
-					this.secondVec[idx].data.Remove(e)
+					p.secondVec[idx].data.Remove(e)
 					continue
 				}
-				new_idx := this.findPrevTvecRootIdx(t.expire-gTimeMgr.ApproximateTimeSecond, idx)
-				if idx != new_idx {
+				newIdx := p.findPrevTvecRootIdx(t.expire-gTimeMgr.ApproximateTimeSecond, idx)
+				if idx != newIdx {
 					next = e.Next()
-					this.secondVec[idx].data.Remove(e)
-					this.addSecond(t.function, t.owner, t.data, t.expire, t)
+					p.secondVec[idx].data.Remove(e)
+					p.addSecond(t.function, t.owner, t.data, t.expire, t)
 				} else {
-					if t.expire < this.secondVec[idx].min_expire {
-						this.secondVec[idx].min_expire = t.expire
+					if t.expire < p.secondVec[idx].minExpire {
+						p.secondVec[idx].minExpire = t.expire
 					}
 					next = e.Next()
 				}
@@ -210,9 +217,9 @@ func (this *timerMgr) scanSecond() {
 }
 
 //向前查找符合时间差的时间轮序号
-func (this *timerMgr) findPrevTvecRootIdx(diff int64, srcIdx int) (idx int) {
+func (p *timerMgr) findPrevTvecRootIdx(diff int64, srcIdx int) (idx int) {
 	for {
-		if 0 != srcIdx && diff <= this.secondVec[srcIdx-1].expire {
+		if 0 != srcIdx && diff <= p.secondVec[srcIdx-1].expire {
 			srcIdx--
 		} else {
 			break
@@ -222,19 +229,19 @@ func (this *timerMgr) findPrevTvecRootIdx(diff int64, srcIdx int) (idx int) {
 }
 
 //扫描毫秒级定时器
-func (this *timerMgr) scanMillisecond() {
+func (p *timerMgr) scanMillisecond() {
 	var next *list.Element
-	for e := this.millisecondList.Front(); e != nil; e = next {
+	for e := p.millisecondList.Front(); e != nil; e = next {
 		t := e.Value.(*TimerMillisecond)
 		if t.invalid {
 			next = e.Next()
-			this.millisecondList.Remove(e)
+			p.millisecondList.Remove(e)
 			continue
 		}
 		if t.expire <= gTimeMgr.ApproximateTimeMillisecond {
 			t.function(t.owner, t.data)
 			next = e.Next()
-			this.millisecondList.Remove(e)
+			p.millisecondList.Remove(e)
 		} else {
 			next = e.Next()
 		}
@@ -247,11 +254,11 @@ type tvecRoot struct {
 	//轮子的到期时间
 	expire int64
 	//最小到期时间
-	min_expire int64
+	minExpire int64
 }
 
-func (this *tvecRoot) init() {
-	this.data = list.New()
+func (p *tvecRoot) init() {
+	p.data = list.New()
 }
 
 //4,8,16,32,64,128,256...

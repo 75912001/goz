@@ -15,152 +15,151 @@ import (
 )
 
 const (
-	LOG_CHAN_MAX_CNT = 1000 //日志channel的最大数量
+	logChanMaxCnt = 1000 //日志channel的最大数量
 )
 
 //日志等级
 const (
-	LEVEL_OFF int = iota //关闭
-	LEVEL_EMERG
-	LEVEL_CRIT
-	LEVEL_ERROR
-	LEVEL_WARNING
-	LEVEL_NOTICE
-	LEVEL_INFO
-	LEVEL_DEBUG
-	LEVEL_TRACE
-	LEVEL_ON //全部打开
+	levelOff int = iota //关闭
+	levelEmerg
+	levelCrit
+	levelError
+	levelWarning
+	levelNotice
+	levelInfo
+	levelDebug
+	levelTrace
+	levelOn //全部打开
 )
 
+//Log 日志
 type Log struct {
-	level       int      //日志等级
-	file        *os.File //日志文件
-	logger      *log.Logger
-	logChan     chan string
-	yyyymmdd    int    //日志年月日
-	name_prefix string //日志文件名称前缀
+	level      int      //日志等级
+	file       *os.File //日志文件
+	logger     *log.Logger
+	logChan    chan string
+	yyyymmdd   int    //日志年月日
+	namePrefix string //日志文件名称前缀
 }
 
-//初始化
-func (this *Log) Init(name string) (err error) {
-	this.level = LEVEL_ON
-	this.name_prefix = name
-	this.yyyymmdd = GenYYYYMMDD(time.Now().Unix())
+//Init 初始化
+func (p *Log) Init(name string) (err error) {
+	p.level = levelOn
+	p.namePrefix = name
+	p.yyyymmdd = GenYYYYMMDD(time.Now().Unix())
 
-	log_name := this.name_prefix + IntToString(this.yyyymmdd)
-	this.file, err = os.OpenFile(log_name, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+	logName := p.namePrefix + IntToString(p.yyyymmdd)
+	p.file, err = os.OpenFile(logName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
 	if nil != err {
 		return
 	}
-	this.logger = log.New(this.file, "", log.Ltime) //log.Ldate|log.Llongfile)
+	p.logger = log.New(p.file, "", log.Ltime) //log.Ldate|log.Llongfile)
 
-	this.logChan = make(chan string, LOG_CHAN_MAX_CNT)
-	go this.onOutPut()
+	p.logChan = make(chan string, logChanMaxCnt)
+	go p.onOutPut()
 	return
 }
 
-//设置日志等级
-func (this *Log) SetLevel(level int) {
-	this.level = level
+//SetLevel 设置日志等级
+func (p *Log) SetLevel(level int) {
+	p.level = level
 }
 
-//反初始化
-func (this *Log) DeInit() {
-	this.file.Close()
+//DeInit 反初始化
+func (p *Log) DeInit() {
+	p.file.Close()
 }
 
-/////////////////////////////////////////////////////////////////////////////
-//日志方法
-//踪迹日志
-func (this *Log) Trace(v ...interface{}) {
-	if this.level < LEVEL_TRACE {
+//Trace 踪迹日志
+func (p *Log) Trace(v ...interface{}) {
+	if p.level < levelTrace {
 		return
 	}
-	this.outPut(2, "trace", fmt.Sprintln(v...))
+	p.outPut(2, "trace", fmt.Sprintln(v...))
 }
 
-//调试日志
-func (this *Log) Debug(v ...interface{}) {
-	if this.level < LEVEL_DEBUG {
+//Debug 调试日志
+func (p *Log) Debug(v ...interface{}) {
+	if p.level < levelDebug {
 		return
 	}
-	this.outPut(2, "debug", fmt.Sprintln(v...))
+	p.outPut(2, "debug", fmt.Sprintln(v...))
 }
 
-//报告日志
-func (this *Log) Info(v ...interface{}) {
-	if this.level < LEVEL_INFO {
+//Info 报告日志
+func (p *Log) Info(v ...interface{}) {
+	if p.level < levelInfo {
 		return
 	}
-	this.outPut(2, "info", fmt.Sprintln(v...))
+	p.outPut(2, "info", fmt.Sprintln(v...))
 }
 
-//公告日志
-func (this *Log) Notice(v ...interface{}) {
-	if this.level < LEVEL_NOTICE {
+//Notice 公告日志
+func (p *Log) Notice(v ...interface{}) {
+	if p.level < levelNotice {
 		return
 	}
-	this.outPut(2, "notice", fmt.Sprintln(v...))
+	p.outPut(2, "notice", fmt.Sprintln(v...))
 }
 
-//警告日志
-func (this *Log) Warning(v ...interface{}) {
-	if this.level < LEVEL_WARNING {
+//Warning 警告日志
+func (p *Log) Warning(v ...interface{}) {
+	if p.level < levelWarning {
 		return
 	}
-	this.outPut(2, "warning", fmt.Sprintln(v...))
+	p.outPut(2, "warning", fmt.Sprintln(v...))
 }
 
-//错误日志
-func (this *Log) Error(v ...interface{}) {
-	if this.level < LEVEL_ERROR {
+//Error 错误日志
+func (p *Log) Error(v ...interface{}) {
+	if p.level < levelError {
 		return
 	}
-	this.outPut(2, "error", fmt.Sprintln(v...))
+	p.outPut(2, "error", fmt.Sprintln(v...))
 }
 
-//临界日志
-func (this *Log) Crit(v ...interface{}) {
-	if this.level < LEVEL_CRIT {
+//Crit 临界日志
+func (p *Log) Crit(v ...interface{}) {
+	if p.level < levelCrit {
 		return
 	}
-	this.outPut(2, "crit", fmt.Sprintln(v...))
+	p.outPut(2, "crit", fmt.Sprintln(v...))
 }
 
-//不可用日志
-func (this *Log) Emerg(v ...interface{}) {
-	if this.level < LEVEL_EMERG {
+//Emerg 不可用日志
+func (p *Log) Emerg(v ...interface{}) {
+	if p.level < levelEmerg {
 		return
 	}
-	this.outPut(2, "emerg", fmt.Sprintln(v...))
+	p.outPut(2, "emerg", fmt.Sprintln(v...))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //写日志
-func (this *Log) onOutPut() {
+func (p *Log) onOutPut() {
 	for {
-		now_yyyymmdd := GenYYYYMMDD(time.Now().Unix())
-		if this.yyyymmdd != now_yyyymmdd {
-			this.file.Close()
+		nowYYYYMMDD := GenYYYYMMDD(time.Now().Unix())
+		if p.yyyymmdd != nowYYYYMMDD {
+			p.file.Close()
 
-			this.yyyymmdd = now_yyyymmdd
-			log_name := this.name_prefix + IntToString(this.yyyymmdd)
-			this.file, _ = os.OpenFile(log_name, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-			this.logger = log.New(this.file, "", log.Ltime) //log.Ldate|log.Llongfile)
+			p.yyyymmdd = nowYYYYMMDD
+			logName := p.namePrefix + IntToString(p.yyyymmdd)
+			p.file, _ = os.OpenFile(logName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+			p.logger = log.New(p.file, "", log.Ltime) //log.Ldate|log.Llongfile)
 		}
 
-		this.logger.Print(<-this.logChan)
+		p.logger.Print(<-p.logChan)
 	}
 }
 
 //路径,文件名,行数,函数名称
-func (this *Log) outPut(calldepth int, prefix string, str string) {
+func (p *Log) outPut(calldepth int, prefix string, str string) {
 	pc, file, line, ok := runtime.Caller(calldepth)
 	if true != ok {
 		return
 	}
 	funName := runtime.FuncForPC(pc).Name()
 
-	var strLine string = strconv.Itoa(line)
-	this.logChan <- "[" + prefix + "][" + file + "][" + strLine + "][" + funName + "]" + str
+	var strLine = strconv.Itoa(line)
+	p.logChan <- "[" + prefix + "][" + file + "][" + strLine + "][" + funName + "]" + str
 }

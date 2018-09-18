@@ -31,14 +31,14 @@ import (
 type keyMap map[string]string
 type sectionMap map[string]keyMap
 
-//ini文件
+//Ini ini文件
 type Ini struct {
 	sectionMap sectionMap //存取配置文件
 }
 
-//加载文件
-func (this *Ini) Load(path string) (err error) {
-	this.init()
+//Load 加载文件
+func (p *Ini) Load(path string) (err error) {
+	p.init()
 
 	var file *os.File
 	file, err = os.Open(path)
@@ -71,16 +71,16 @@ func (this *Ini) Load(path string) (err error) {
 			}
 			key := line[0:symbolIndex]
 			value := line[symbolIndex+1:]
-			this.load(section, key, value)
+			p.load(section, key, value)
 		}
 	}
 
 	return
 }
 
-//获取对应的值
-func (this *Ini) GetString(section string, key string, defaultValue string) (value string) {
-	sectionValue, valid := this.sectionMap[section]
+//GetString 获取对应的值
+func (p *Ini) GetString(section string, key string, defaultValue string) (value string) {
+	sectionValue, valid := p.sectionMap[section]
 	if valid {
 		keyValue, valid := sectionValue[key]
 		if valid {
@@ -90,21 +90,24 @@ func (this *Ini) GetString(section string, key string, defaultValue string) (val
 	return defaultValue
 }
 
-func (this *Ini) GetUint32(section string, key string, defaultValue string) (value uint32) {
+//GetUint32 获取uint32
+func (p *Ini) GetUint32(section string, key string, defaultValue string) (value uint32) {
 	var str string
-	str = this.GetString(section, key, defaultValue)
+	str = p.GetString(section, key, defaultValue)
 	return StringToUint32(&str)
 }
 
-func (this *Ini) GetInt(section string, key string, defaultValue string) (value int) {
+//GetInt 获取int
+func (p *Ini) GetInt(section string, key string, defaultValue string) (value int) {
 	var str string
-	str = this.GetString(section, key, defaultValue)
+	str = p.GetString(section, key, defaultValue)
 	return StringToInt(&str)
 }
 
-func (this *Ini) GetUint16(section string, key string, defaultValue string) (value uint16) {
+//GetUint16 获取uint16
+func (p *Ini) GetUint16(section string, key string, defaultValue string) (value uint16) {
 	var str string
-	str = this.GetString(section, key, defaultValue)
+	str = p.GetString(section, key, defaultValue)
 	return StringToUint16(&str)
 }
 
@@ -115,13 +118,13 @@ func (p *Ini) init() {
 }
 
 //加载文件到内存中
-func (this *Ini) load(section string, key string, value string) {
-	_, valid := this.sectionMap[section]
+func (p *Ini) load(section string, key string, value string) {
+	_, valid := p.sectionMap[section]
 	if valid {
-		this.sectionMap[section][key] = value
+		p.sectionMap[section][key] = value
 	} else {
 		keyMap := make(keyMap)
 		keyMap[key] = value
-		this.sectionMap[section] = keyMap
+		p.sectionMap[section] = keyMap
 	}
 }

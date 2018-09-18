@@ -9,11 +9,13 @@ import (
 
 var defContentLength int64 = 102400
 
+//Client 客户端
 type Client struct {
 	Result []byte
 }
 
-func (this *Client) Get(url string) (err error) {
+//Get 获取
+func (p *Client) Get(url string) (err error) {
 	resp, err := http.Get(url)
 	if nil != err {
 		gLog.Error("######HttpClient.Get err:", err, url)
@@ -29,10 +31,10 @@ func (this *Client) Get(url string) (err error) {
 		contentLength = resp.ContentLength
 	}
 
-	this.Result = make([]byte, contentLength)
+	p.Result = make([]byte, contentLength)
 
 	//	fmt.Println(resp.Body)
-	this.Result, err = ioutil.ReadAll(resp.Body)
+	p.Result, err = ioutil.ReadAll(resp.Body)
 
 	if nil != err {
 		gLog.Error("######HttpClient.Get err:", err, resp.Body)
@@ -41,6 +43,7 @@ func (this *Client) Get(url string) (err error) {
 	return err
 }
 
+//Post 发送
 func (p *Client) Post(urlData string, bodyType string, body io.Reader) (err error) {
 	resp, err := http.Post(urlData, bodyType, body)
 	if nil != err {

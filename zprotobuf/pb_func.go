@@ -5,70 +5,73 @@ import (
 	"github.com/goz/zutility"
 )
 
-type MESSAGE_ID uint32
-type PACKET_LENGTH uint32
+//MessageID 消息ID
+type MessageID uint32
 
-//protobuf 管理器
+//PacketLength 包总长度
+type PacketLength uint32
+
+//PbFunMgr 管理器
 type PbFunMgr struct {
-	pbFunMap PB_FUN_MAP
+	pbFunMap ProtoBufFunMap
 	log      *zutility.Log
 }
 
-//初始化管理器
-func (this *PbFunMgr) Init(v *zutility.Log) {
-	this.log = v
-	this.pbFunMap = make(PB_FUN_MAP)
+//Init 初始化管理器
+func (p *PbFunMgr) Init(v *zutility.Log) {
+	p.log = v
+	p.pbFunMap = make(ProtoBufFunMap)
 }
 
-//注册消息
-func (this *PbFunMgr) Register(messageId MESSAGE_ID, pbFun PB_FUN,
+//Register 注册消息
+func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 	protoMessage proto.Message) (ret int) {
 	{
-		pb_fun_handle := this.find(messageId)
-		this.log.Trace(messageId)
-		if nil != pb_fun_handle {
-			this.log.Error("MessageId exist:", messageId)
-			return zutility.EC_SYS
+		pbFunHandle := p.find(messageID)
+		p.log.Trace(messageID)
+		if nil != pbFunHandle {
+			p.log.Error("MessageId exist:", messageID)
+			return zutility.ErrorCodeSYS
 		}
 	}
 	{
-		var pb_fun_handle *pbFunHandle = new(pbFunHandle)
-		pb_fun_handle.pbFun = pbFun
-		pb_fun_handle.protoMessage = &protoMessage
-		this.pbFunMap[messageId] = pb_fun_handle
+		var pbFunHandle = new(pbFunHandle)
+		pbFunHandle.pbFun = pbFun
+		pbFunHandle.protoMessage = &protoMessage
+		p.pbFunMap[messageID] = pbFunHandle
 	}
 
 	return 0
 }
 
-//收到消息
-func (this *PbFunMgr) OnRecv(messageId MESSAGE_ID, recvProtoHeadBuf []byte, RecvBuf []byte, obj interface{}) (ret int) {
-	pbFunHandle, ok := this.pbFunMap[messageId]
+//OnRecv 收到消息
+func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, RecvBuf []byte, obj interface{}) (ret int) {
+	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
-		this.log.Error("MessageId inexist:", messageId)
-		return zutility.EC_DISCONNECT_PEER
+		p.log.Error("MessageId inexist:", messageID)
+		return zutility.ErrorCodeDisconnectPeer
 	}
 
 	err := proto.Unmarshal(RecvBuf, *pbFunHandle.protoMessage)
 	if nil != err {
-		this.log.Error("proto.Unmarshal:", messageId, err)
-		return zutility.EC_DISCONNECT_PEER
+		p.log.Error("proto.Unmarshal:", messageID, err)
+		return zutility.ErrorCodeDisconnectPeer
 	}
 	return pbFunHandle.pbFun(recvProtoHeadBuf, obj, pbFunHandle.protoMessage)
 }
 
-////////////////////////////////////////////////////////////////////////////////
 type pbFunHandle struct {
-	pbFun        PB_FUN
+	pbFun        ProtoBufFun
 	protoMessage *proto.Message
 }
-type PB_FUN_MAP map[MESSAGE_ID]*pbFunHandle
 
-////////////////////////////////////////////////////////////////////////////
+//ProtoBufFunMap 协议function map
+type ProtoBufFunMap map[MessageID]*pbFunHandle
 
-type PB_FUN func(recvProtoHeadBuf []byte, obj interface{}, protoMessage *proto.Message) (ret int)
+//ProtoBufFun 协议function
+type ProtoBufFun func(recvProtoHeadBuf []byte, obj interface{}, protoMessage *proto.Message) (ret int)
 
-func (this *PbFunMgr) find(messageId MESSAGE_ID) (pb_fun_handle *pbFunHandle) {
-	pb_fun_handle, _ = this.pbFunMap[messageId]
-	return
+func (p *PbFunMgr) find(messageID MessageID) (pbFunHandle *pbFunHandle) {
+	pbFunHandle, _ = p.pbFunMap[messageID]
+	return pbFunHandle
 }

@@ -2,12 +2,12 @@ package zutility
 
 import "sync"
 
-//"sync"
-
+//Lock 锁
 func Lock() {
 	gLock.Lock()
 }
 
+//UnLock 解锁
 func UnLock() {
 	gLock.Unlock()
 }

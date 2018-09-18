@@ -18,38 +18,38 @@ type Client struct {
 }
 
 //Connect 连接
-func (client *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
+func (p *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
 	var addr = ip + ":" + strconv.Itoa(int(port))
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	if nil != err {
 		gLog.Crit("net.ResolveTCPAddr:", err, addr)
 		return
 	}
-	client.PeerConn.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	p.PeerConn.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if nil != err {
 		gLog.Crit("net.Dial:", err, addr)
 		return
 	}
 
-	go client.recv(recvBufMax)
+	go p.recv(recvBufMax)
 	return
 }
 
-func (client *Client) recv(recvBufMax int) {
+func (p *Client) recv(recvBufMax int) {
 	//优化[消耗内存过大]
-	client.PeerConn.Buf = make([]byte, recvBufMax)
+	p.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
 		zutility.Lock()
-		client.OnConnClosed(&client.PeerConn)
+		p.OnConnClosed(&p.PeerConn)
 		zutility.UnLock()
 
-		client.PeerConn.Conn.Close()
+		p.PeerConn.Conn.Close()
 	}()
 
 	var readIndex int
 	for {
-		readNum, err := client.PeerConn.Conn.Read(client.PeerConn.Buf[readIndex:])
+		readNum, err := p.PeerConn.Conn.Read(p.PeerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("Conn.Read:", readNum, err)
 			break
@@ -63,7 +63,7 @@ func (client *Client) recv(recvBufMax int) {
 				zutility.UnLock()
 			}()
 			zutility.Lock()
-			packetLength = client.OnParseProtoHead(&client.PeerConn, readIndex)
+			packetLength = p.OnParseProtoHead(&p.PeerConn, readIndex)
 			if 0 == packetLength {
 				continue
 			}
@@ -71,9 +71,9 @@ func (client *Client) recv(recvBufMax int) {
 				gLog.Error("packetLength")
 				break
 			}
-			client.OnPacket(&client.PeerConn)
+			p.OnPacket(&p.PeerConn)
 		}
-		copy(client.PeerConn.Buf, client.PeerConn.Buf[packetLength:readIndex])
+		copy(p.PeerConn.Buf, p.PeerConn.Buf[packetLength:readIndex])
 		readIndex -= packetLength
 
 		//以下移到应用层OnParseProtoHead中
@@ -82,19 +82,19 @@ func (client *Client) recv(recvBufMax int) {
 				continue
 			}
 
-			client.PeerConn.parseProtoHeadPacketLength()
+			p.PeerConn.parseProtoHeadPacketLength()
 
-			if int(client.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
-				gLog.Error("client.PeerConn.ProtoHead.PacketLength:", client.PeerConn.ProtoHead.PacketLength)
+			if int(p.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
+				gLog.Error("client.PeerConn.ProtoHead.PacketLength:", p.PeerConn.ProtoHead.PacketLength)
 				break
 			}
 
-			if readIndex < int(client.PeerConn.ProtoHead.PacketLength) {
+			if readIndex < int(p.PeerConn.ProtoHead.PacketLength) {
 				continue
 			}
 
 			//有完整的包
-			client.PeerConn.parseProtoHead()
+			p.PeerConn.parseProtoHead()
 		*/
 	}
 }

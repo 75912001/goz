@@ -36,10 +36,10 @@ type Server struct {
 }
 
 //Run 运行
-func (server *Server) Run(ip string, port uint16, noDelay bool) (err error) {
-	server.IsRun = true
+func (p *Server) Run(ip string, port uint16, noDelay bool) (err error) {
+	p.IsRun = true
 
-	server.peerConnRecvChan = make(chan PeerConnRecvChan, recvChanMaxCnt)
+	p.peerConnRecvChan = make(chan PeerConnRecvChan, recvChanMaxCnt)
 
 	var addr = ip + ":" + strconv.Itoa(int(port))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
@@ -56,22 +56,22 @@ func (server *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 	}
 
 	zutility.Lock()
-	server.OnInit()
+	p.OnInit()
 	zutility.UnLock()
 
 	defer func() {
 		zutility.Lock()
-		server.OnFini()
+		p.OnFini()
 		zutility.UnLock()
 
 		listen.Close()
 	}()
 
-	go server.handleAccept(listen, noDelay)
+	go p.handleAccept(listen, noDelay)
 
 	go func() {
 		//处理收到的数据
-		for v := range server.peerConnRecvChan {
+		for v := range p.peerConnRecvChan {
 			defer func() {
 				zutility.UnLock()
 			}()
@@ -80,15 +80,18 @@ func (server *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 				continue
 			}
 			if 1 == v.eventType {
-				server.ClosePeer(v.PeerConn)
+				p.ClosePeer(v.PeerConn)
 			} else {
-				server.OnPacket(v.PeerConn, v.PeerConn.Buf)
+				ret := p.OnPacket(v.PeerConn, v.PeerConn.Buf)
+				if zutility.ErrorCodeDisconnectPeer == ret {
+					p.ClosePeer(v.PeerConn)
+				}
 			}
 		}
 	}()
 
 	//优化[使用信号通知的方式结束循环]
-	for server.IsRun {
+	for p.IsRun {
 		time.Sleep(1 * time.Second)
 		//gLog.Debug("server run...")
 	}
@@ -99,13 +102,13 @@ func (server *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 }
 
 //ClosePeer 关闭对方
-func (server *Server) ClosePeer(peerConn *PeerConn) {
+func (p *Server) ClosePeer(peerConn *PeerConn) {
 	peerConn.Invalid = true
-	server.OnPeerConnClosed(peerConn)
+	p.OnPeerConnClosed(peerConn)
 	peerConn.Conn.Close()
 }
 
-func (server *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
+func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 	var tempDelay time.Duration
 	for {
 		conn, err := listen.AcceptTCP()
@@ -125,30 +128,30 @@ func (server *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 			}
 
 			gLog.Crit("listen.Accept:", err)
-			server.IsRun = false
+			p.IsRun = false
 			return
 		}
 		tempDelay = 0
 
 		conn.SetNoDelay(noDelay)
-		conn.SetReadBuffer((int)(server.PacketLengthMax))
-		conn.SetWriteBuffer((int)(server.PacketLengthMax))
-		go server.handleConnection(conn)
+		conn.SetReadBuffer((int)(p.PacketLengthMax))
+		conn.SetWriteBuffer((int)(p.PacketLengthMax))
+		go p.handleConnection(conn)
 	}
 }
 
-func (server *Server) handleConnection(conn *net.TCPConn) {
+func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerConn PeerConn
 	peerConn.Conn = conn
 
 	//优化[消耗内存过大]
-	peerConn.Buf = make([]byte, server.PacketLengthMax)
+	peerConn.Buf = make([]byte, p.PacketLengthMax)
 
 	var peerIP = peerConn.Conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIP)
 
 	zutility.Lock()
-	server.OnPeerConn(&peerConn)
+	p.OnPeerConn(&peerConn)
 	zutility.UnLock()
 
 	defer func() {
@@ -156,7 +159,7 @@ func (server *Server) handleConnection(conn *net.TCPConn) {
 		var peerConnRecvChan PeerConnRecvChan
 		peerConnRecvChan.PeerConn = &peerConn
 		peerConnRecvChan.eventType = 1
-		server.peerConnRecvChan <- peerConnRecvChan
+		p.peerConnRecvChan <- peerConnRecvChan
 	}()
 
 	var readIndex int
@@ -176,7 +179,7 @@ func (server *Server) handleConnection(conn *net.TCPConn) {
 			}()
 			zutility.Lock()
 
-			packetLength := server.OnParseProtoHead(&peerConn, readIndex)
+			packetLength := p.OnParseProtoHead(&peerConn, readIndex)
 			if 0 == packetLength {
 				goto LoopRead
 			}
@@ -191,7 +194,7 @@ func (server *Server) handleConnection(conn *net.TCPConn) {
 			peerConnRecvChan.Buf = make([]byte, packetLength)
 			peerConnRecvChan.PeerConn = &peerConn
 			copy(peerConnRecvChan.Buf, peerConn.Buf[:packetLength])
-			server.peerConnRecvChan <- peerConnRecvChan
+			p.peerConnRecvChan <- peerConnRecvChan
 
 			copy(peerConn.Buf, peerConn.Buf[packetLength:readIndex])
 			readIndex -= packetLength

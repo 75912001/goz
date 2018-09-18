@@ -12,8 +12,8 @@ type PeerConn struct {
 }
 
 //Send 发送消息
-func (peerConn *PeerConn) Send(msgBuf []byte) (err error) {
-	_, err = peerConn.Conn.Write(msgBuf)
+func (p *PeerConn) Send(msgBuf []byte) (err error) {
+	_, err = p.Conn.Write(msgBuf)
 	if nil != err {
 		gLog.Error("peerConn.Conn.Write:", err)
 		return

@@ -8,7 +8,7 @@ import (
 //////////////////////////////////////////////////////////////////////////////
 //字符串转->数值类型
 
-//失败返回0
+//StringToInt 失败返回0
 func StringToInt(s *string) (value int) {
 	vaule, err := strconv.ParseInt(*s, 10, 0)
 	if nil != err {
@@ -17,7 +17,7 @@ func StringToInt(s *string) (value int) {
 	return int(vaule)
 }
 
-//失败返回0
+//StringToUint16 失败返回0
 func StringToUint16(s *string) (value uint16) {
 	vaule, err := strconv.ParseUint(*s, 10, 16)
 	if nil != err {
@@ -26,7 +26,7 @@ func StringToUint16(s *string) (value uint16) {
 	return uint16(vaule)
 }
 
-//失败返回0
+//StringToUint32 失败返回0
 func StringToUint32(s *string) (value uint32) {
 	vaule, err := strconv.ParseUint(*s, 10, 32)
 	if nil != err {
@@ -35,7 +35,7 @@ func StringToUint32(s *string) (value uint32) {
 	return uint32(vaule)
 }
 
-//失败返回0
+//StringToUint64 失败返回0
 func StringToUint64(s *string) (value uint64) {
 	vaule, err := strconv.ParseUint(*s, 10, 64)
 	if nil != err {
@@ -44,7 +44,7 @@ func StringToUint64(s *string) (value uint64) {
 	return vaule
 }
 
-//失败返回0
+//StringToInt32 失败返回0
 func StringToInt32(s *string) (value int32) {
 	vaule, err := strconv.ParseInt(*s, 10, 32)
 	if nil != err {
@@ -53,7 +53,7 @@ func StringToInt32(s *string) (value int32) {
 	return int32(vaule)
 }
 
-//失败返回0
+//StringToInt64 失败返回0
 func StringToInt64(s *string) (value int64) {
 	vaule, err := strconv.ParseInt(*s, 10, 64)
 	if nil != err {
@@ -62,20 +62,17 @@ func StringToInt64(s *string) (value int64) {
 	return vaule
 }
 
+//IntToString int->string
 func IntToString(v int) string {
 	return strconv.Itoa(v)
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-//s:"1,2,3,4",
-//sep:","
-//return:[1 2 3 4]
+//StringSplit [s:"1,2,3,4"] sep:"," => return:[1 2 3 4]
 func StringSplit(s *string, sep string) []string {
 	return strings.Split(*s, sep)
 }
 
-//获取string前length字符(unicode)的string
+//StringSubstrRune 获取string前length字符(unicode)的string
 //StringSubstrRune("你好,我是rune,3,4,5,6,7,8,9", 7)
 //return:你好,我是ru
 func StringSubstrRune(s *string, length int) (value string) {

@@ -7,44 +7,43 @@ import (
 	"hash/fnv"
 )
 
-//-2147483648
-const INT32_MIN = ^INT32_MAX
+//Int32Min -2147483648
+const Int32Min = ^Int32Max
 
-//2147483647
-const INT32_MAX = int32(^uint32(0) >> 1)
+//Int32Max 2147483647
+const Int32Max = int32(^uint32(0) >> 1)
 
-//-9223372036854775808
-const INT64_MIN = ^INT64_MAX
+//Int64Min -9223372036854775808
+const Int64Min = ^Int64Max
 
-//9223372036854775807
-const INT64_MAX = int64(^uint64(0) >> 1)
+//Int64Max 9223372036854775807
+const Int64Max = int64(^uint64(0) >> 1)
 
-//0
-const UINT32_MIN uint32 = 0
+//Uint32Min 0
+const Uint32Min uint32 = 0
 
-//4294967295
-const UINT32_MAX = ^uint32(0)
+//Uint32Max 4294967295
+const Uint32Max = ^uint32(0)
 
-//0
-const UNT64_MIN = ^UNT64_MAX
+//Uint64Min 0
+const Uint64Min = ^Uint64Max
 
-//18446744073709551615
-const UNT64_MAX = ^uint64(0)
+//Uint64Max 18446744073709551615
+const Uint64Max = ^uint64(0)
 
-//-9223372036854775808
-const INT_MIN = ^INT_MAX
+//IntMin -9223372036854775808
+const IntMin = ^IntMax
 
-//9223372036854775807
-const INT_MAX = int(^uint(0) >> 1)
+//IntMax 9223372036854775807
+const IntMax = int(^uint(0) >> 1)
 
-//0
-const UINT_MIN uint = 0
+//UintMin 0
+const UintMin uint = 0
 
-//18446744073709551615
-const UINT_MAX = ^uint(0)
+//UintMax 18446744073709551615
+const UintMax = ^uint(0)
 
-////////////////////////////////////////////////////////////////////////////////
-//md5
+//GenMd5 md5
 func GenMd5(s *string) (value string) {
 	md5Ctx := md5.New()
 	md5Ctx.Write([]byte(*s))
@@ -52,25 +51,24 @@ func GenMd5(s *string) (value string) {
 	return hex.EncodeToString(cipherStr)
 }
 
+//HASH 哈希
 func HASH(s *string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(*s))
 	return h.Sum32()
 }
 
-//配合libel库
-func HASH_EL(s *string) uint32 {
+//HASHEL 配合libel库
+func HASHEL(s *string) uint32 {
 	var h uint32
 	rs := []rune(*s)
 	n := len(rs)
 	for i := 0; i < n; i++ {
 		h = 31*h + uint32(rs[i])
 	}
-
 	return h
 }
 
-////////////////////////////////////////////////////////////////////////////////
 //var strJson string = "{\"tradeNo\":\"5c84ad403373ec0803dbddddc77246b1\",\"productId\":\"tjlhxkgddj0o1\"}"
 //var jsonMap map[string]interface{}
 //jsonMap = make(map[string]interface{}, 0)
@@ -85,9 +83,11 @@ func HASH_EL(s *string) uint32 {
 //} else {
 //失败
 //}
-func Json2map(strJson *string) (s map[string]interface{}, err error) {
+
+//JSON2map JSON => MAP
+func JSON2map(strJSON *string) (s map[string]interface{}, err error) {
 	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(*strJson), &result); err != nil {
+	if err := json.Unmarshal([]byte(*strJSON), &result); err != nil {
 		return nil, err
 	}
 	return result, nil

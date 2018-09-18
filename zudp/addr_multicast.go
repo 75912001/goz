@@ -21,9 +21,10 @@ type serverAddr struct {
 	port uint16
 	data string
 }
-type serverIdMap map[uint32]*serverAddr
-type serverNameMap map[string]serverIdMap
+type serverIDMap map[uint32]*serverAddr
+type serverNameMap map[string]serverIDMap
 
+//AddrMulticast 地址组播
 type AddrMulticast struct {
 	OnAddrMulticast func(name string, svr_id uint32, ip string, port uint16, data string)
 	conn            *net.UDPConn
@@ -33,32 +34,33 @@ type AddrMulticast struct {
 	selfServerAddr  serverAddr    //自己服务器地址信息
 }
 
-func (this *AddrMulticast) Run(ip string, port uint16, netName string,
-	addrName string, addrId uint32, addrIp string, addrPort uint16, addrData string,
+//Run 运行
+func (p *AddrMulticast) Run(ip string, port uint16, netName string,
+	addrName string, addrID uint32, addrIP string, addrPort uint16, addrData string,
 	log *zutility.Log) (err error) {
 
-	this.selfServerAddr.name = addrName
-	this.selfServerAddr.id = addrId
-	this.selfServerAddr.ip = addrIp
-	this.selfServerAddr.port = addrPort
-	this.selfServerAddr.data = addrData
+	p.selfServerAddr.name = addrName
+	p.selfServerAddr.id = addrID
+	p.selfServerAddr.ip = addrIP
+	p.selfServerAddr.port = addrPort
+	p.selfServerAddr.data = addrData
 
 	gLog = log
-	this.init()
-	var str_addr = ip + ":" + strconv.Itoa(int(port))
-	this.mcaddr, err = net.ResolveUDPAddr("udp4", str_addr)
+	p.init()
+	var strAddr = ip + ":" + strconv.Itoa(int(port))
+	p.mcaddr, err = net.ResolveUDPAddr("udp4", strAddr)
 	if nil != err {
 		gLog.Crit("net.ResolveUDPAddr err:", err)
 		return
 	}
 
-	this.conn, err = net.ListenUDP("udp4", this.mcaddr)
+	p.conn, err = net.ListenUDP("udp4", p.mcaddr)
 	if err != nil {
 		gLog.Crit("ListenUDP err:", err)
 		return
 	}
 
-	pc := ipv4.NewPacketConn(this.conn)
+	pc := ipv4.NewPacketConn(p.conn)
 
 	iface, err := net.InterfaceByName(netName)
 	if nil != err {
@@ -66,10 +68,10 @@ func (this *AddrMulticast) Run(ip string, port uint16, netName string,
 		return
 	}
 
-	str_addr_ipv4, _ := net.ResolveIPAddr("ip4", ip)
-	err = pc.JoinGroup(iface, str_addr_ipv4)
+	strAddrIpv4, _ := net.ResolveIPAddr("ip4", ip)
+	err = pc.JoinGroup(iface, strAddrIpv4)
 	if nil != err {
-		gLog.Crit("err:", err, str_addr_ipv4)
+		gLog.Crit("err:", err, strAddrIpv4)
 		return
 	}
 
@@ -83,25 +85,25 @@ func (this *AddrMulticast) Run(ip string, port uint16, netName string,
 	}
 
 	var cmd uint32 = 2
-	var arr_name [32]byte
-	var arr_ip [16]byte
-	var arr_data [32]byte
-	copy(arr_name[:], addrName)
-	copy(arr_ip[:], addrIp)
-	copy(arr_data[:], addrData)
+	var arrName [32]byte
+	var arrIP [16]byte
+	var arrData [32]byte
+	copy(arrName[:], addrName)
+	copy(arrIP[:], addrIP)
+	copy(arrData[:], addrData)
 
-	this.addrBuffer = new(bytes.Buffer)
-	binary.Write(this.addrBuffer, binary.LittleEndian, cmd)
-	binary.Write(this.addrBuffer, binary.LittleEndian, addrId)
-	binary.Write(this.addrBuffer, binary.LittleEndian, arr_name)
-	binary.Write(this.addrBuffer, binary.LittleEndian, arr_ip)
-	binary.Write(this.addrBuffer, binary.LittleEndian, addrPort)
-	binary.Write(this.addrBuffer, binary.LittleEndian, arr_data)
+	p.addrBuffer = new(bytes.Buffer)
+	binary.Write(p.addrBuffer, binary.LittleEndian, cmd)
+	binary.Write(p.addrBuffer, binary.LittleEndian, addrID)
+	binary.Write(p.addrBuffer, binary.LittleEndian, arrName)
+	binary.Write(p.addrBuffer, binary.LittleEndian, arrIP)
+	binary.Write(p.addrBuffer, binary.LittleEndian, addrPort)
+	binary.Write(p.addrBuffer, binary.LittleEndian, arrData)
 
-	go this.handleRecv()
+	go p.handleRecv()
 	go func() {
 		for {
-			this.doAddrSYN()
+			p.doAddrSYN()
 			//20-40sec 发送一次
 			time.Sleep(time.Duration(rand.Intn(20)+20) * time.Second)
 		}
@@ -109,8 +111,8 @@ func (this *AddrMulticast) Run(ip string, port uint16, netName string,
 	return
 }
 
-func (this *AddrMulticast) doAddrSYN() {
-	_, err := this.conn.WriteToUDP(this.addrBuffer.Bytes(), this.mcaddr)
+func (p *AddrMulticast) doAddrSYN() {
+	_, err := p.conn.WriteToUDP(p.addrBuffer.Bytes(), p.mcaddr)
 	if nil != err {
 		gLog.Error("PeerConn.Conn.Write:", err)
 		return
@@ -126,16 +128,16 @@ func byteString(p []byte) string {
 	return string(p)
 }
 
-func (this *AddrMulticast) handleRecv() {
+func (p *AddrMulticast) handleRecv() {
 	defer func() {
-		this.conn.Close()
+		p.conn.Close()
 	}()
 
 	var recvBuf []byte
 	recvBuf = make([]byte, 1024)
 
 	for {
-		_, _, err := this.conn.ReadFromUDP(recvBuf)
+		_, _, err := p.conn.ReadFromUDP(recvBuf)
 		if nil != err {
 			gLog.Crit("err:", err)
 			break
@@ -145,40 +147,40 @@ func (this *AddrMulticast) handleRecv() {
 
 		var ser serverAddr
 
-		buf_cmd := bytes.NewBuffer(recvBuf[0:4])
-		binary.Read(buf_cmd, binary.LittleEndian, &cmd)
+		bufCmd := bytes.NewBuffer(recvBuf[0:4])
+		binary.Read(bufCmd, binary.LittleEndian, &cmd)
 
-		buf_svr_id := bytes.NewBuffer(recvBuf[4:8])
-		binary.Read(buf_svr_id, binary.LittleEndian, &ser.id)
+		bufSvrID := bytes.NewBuffer(recvBuf[4:8])
+		binary.Read(bufSvrID, binary.LittleEndian, &ser.id)
 
 		ser.name = byteString(recvBuf[8:40])
 		ser.ip = byteString(recvBuf[40:56])
 
-		buf_port := bytes.NewBuffer(recvBuf[56:58])
-		binary.Read(buf_port, binary.LittleEndian, &ser.port)
+		bufPort := bytes.NewBuffer(recvBuf[56:58])
+		binary.Read(bufPort, binary.LittleEndian, &ser.port)
 
 		ser.data = byteString(recvBuf[58:90])
 
-		if this.selfServerAddr.name != ser.name || this.selfServerAddr.id != ser.id {
-			if nil == this.find(ser.name, ser.id) {
-				this.doAddrSYN()
+		if p.selfServerAddr.name != ser.name || p.selfServerAddr.id != ser.id {
+			if nil == p.find(ser.name, ser.id) {
+				p.doAddrSYN()
 
-				this.add(ser.name, ser.id, &ser)
+				p.add(ser.name, ser.id, &ser)
 			}
 			zutility.Lock()
-			this.OnAddrMulticast(ser.name, ser.id, ser.ip, ser.port, ser.data)
+			p.OnAddrMulticast(ser.name, ser.id, ser.ip, ser.port, ser.data)
 			zutility.UnLock()
 		}
 	}
 }
 
 //初始化
-func (this *AddrMulticast) init() {
-	this.serverMap = make(serverNameMap)
+func (p *AddrMulticast) init() {
+	p.serverMap = make(serverNameMap)
 }
 
-func (this *AddrMulticast) find(name string, id uint32) (s *serverAddr) {
-	value, valid := this.serverMap[name]
+func (p *AddrMulticast) find(name string, id uint32) (s *serverAddr) {
+	value, valid := p.serverMap[name]
 	if valid {
 		value2, valid2 := value[id]
 		if valid2 {
@@ -189,13 +191,13 @@ func (this *AddrMulticast) find(name string, id uint32) (s *serverAddr) {
 }
 
 //添加到内存中
-func (this *AddrMulticast) add(name string, id uint32, s *serverAddr) {
-	_, valid := this.serverMap[name]
+func (p *AddrMulticast) add(name string, id uint32, s *serverAddr) {
+	_, valid := p.serverMap[name]
 	if valid {
-		this.serverMap[name][id] = s
+		p.serverMap[name][id] = s
 	} else {
-		serverIdMap := make(serverIdMap)
-		serverIdMap[id] = s
-		this.serverMap[name] = serverIdMap
+		serverIDMap := make(serverIDMap)
+		serverIDMap[id] = s
+		p.serverMap[name] = serverIDMap
 	}
 }
