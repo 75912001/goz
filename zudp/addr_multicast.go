@@ -167,7 +167,9 @@ func (p *AddrMulticast) handleRecv() {
 
 				p.add(ser.name, ser.id, &ser)
 			}
+
 			zutility.Lock()
+
 			p.OnAddrMulticast(ser.name, ser.id, ser.ip, ser.port, ser.data)
 			zutility.UnLock()
 		}

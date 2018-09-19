@@ -40,7 +40,9 @@ func (p *Client) recv(recvBufMax int) {
 	p.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
+
 		zutility.Lock()
+
 		p.OnConnClosed(&p.PeerConn)
 		zutility.UnLock()
 
@@ -59,19 +61,20 @@ func (p *Client) recv(recvBufMax int) {
 
 		var packetLength int
 		{
-			defer func() {
-				zutility.UnLock()
-			}()
 			zutility.Lock()
+
 			packetLength = p.OnParseProtoHead(&p.PeerConn, readIndex)
 			if 0 == packetLength {
+				zutility.UnLock()
 				continue
 			}
 			if -1 == packetLength {
+				zutility.UnLock()
 				gLog.Error("packetLength")
 				break
 			}
 			p.OnPacket(&p.PeerConn)
+			zutility.UnLock()
 		}
 		copy(p.PeerConn.Buf, p.PeerConn.Buf[packetLength:readIndex])
 		readIndex -= packetLength

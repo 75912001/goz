@@ -38,7 +38,6 @@ func (p *Client) Get(url string) (err error) {
 
 	if nil != err {
 		gLog.Error("######HttpClient.Get err:", err, resp.Body)
-		return err
 	}
 	return err
 }
