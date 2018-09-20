@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-//////////////////////////////////////////////////////////////////////////////
 //字符串转->数值类型
 
 //StringToInt 失败返回0
@@ -78,4 +77,14 @@ func StringSplit(s *string, sep string) []string {
 func StringSubstrRune(s *string, length int) (value string) {
 	r := []rune(*s)
 	return string(r[0:length])
+}
+
+//Byte2String byte->string
+func Byte2String(p []byte) string {
+	for i := 0; i < len(p); i++ {
+		if p[i] == 0 {
+			return string(p[:i])
+		}
+	}
+	return string(p)
 }

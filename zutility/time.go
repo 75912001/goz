@@ -12,13 +12,13 @@ func GenYYYYMMDD(sec int64) int {
 
 //TimeMgr 时间管理器
 type TimeMgr struct {
-	ApproximateTimeSecond      int64 //近似时间（秒），上一次调用Update更新的时间
-	ApproximateTimeMillisecond int64
+	Second      int64 //近似时间（秒），上一次调用Update更新的时间
+	Millisecond int64 //近似时间（毫秒），上一次调用Update更新的时间
 }
 
 //Update 更新时间管理器中的,当前时间
 func (p *TimeMgr) Update() {
 	t := time.Now()
-	p.ApproximateTimeSecond = t.Unix()
-	p.ApproximateTimeMillisecond = t.UnixNano() / 1000000
+	p.Second = t.Unix()
+	p.Millisecond = t.UnixNano() / 1000000
 }

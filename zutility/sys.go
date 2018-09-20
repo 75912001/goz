@@ -19,7 +19,7 @@ func IsDarwin() bool {
 	return `darwin` == runtime.GOOS
 }
 
-//ShowOS os
+//ShowOS 显示os的名称
 func ShowOS() string {
 	return runtime.GOOS
 }

@@ -13,25 +13,28 @@ type PacketLength uint32
 
 //PbFunMgr 管理器
 type PbFunMgr struct {
-	pbFunMap ProtoBufFunMap
+	pbFunMap protoBufFunMap
 	log      *zutility.Log
 }
+
+//协议function
+type protoBufFun func(recvProtoHeadBuf []byte, protoMessage *proto.Message, obj interface{}) (ret int)
 
 //Init 初始化管理器
 func (p *PbFunMgr) Init(v *zutility.Log) {
 	p.log = v
-	p.pbFunMap = make(ProtoBufFunMap)
+	p.pbFunMap = make(protoBufFunMap)
 }
 
 //Register 注册消息
-func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
+func (p *PbFunMgr) Register(messageID MessageID, pbFun protoBufFun,
 	protoMessage proto.Message) (ret int) {
 	{
 		pbFunHandle := p.find(messageID)
 		p.log.Trace(messageID)
 		if nil != pbFunHandle {
 			p.log.Error("MessageId exist:", messageID)
-			return zutility.ErrorCodeSYS
+			return zutility.ECSYS
 		}
 	}
 	{
@@ -49,27 +52,24 @@ func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, RecvBuf 
 	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
 		p.log.Error("MessageId inexist:", messageID)
-		return zutility.ErrorCodeDisconnectPeer
+		return zutility.ECDisconnectPeer
 	}
 
 	err := proto.Unmarshal(RecvBuf, *pbFunHandle.protoMessage)
 	if nil != err {
 		p.log.Error("proto.Unmarshal:", messageID, err)
-		return zutility.ErrorCodeDisconnectPeer
+		return zutility.ECDisconnectPeer
 	}
-	return pbFunHandle.pbFun(recvProtoHeadBuf, obj, pbFunHandle.protoMessage)
+	return pbFunHandle.pbFun(recvProtoHeadBuf, pbFunHandle.protoMessage, obj)
 }
 
 type pbFunHandle struct {
-	pbFun        ProtoBufFun
+	pbFun        protoBufFun
 	protoMessage *proto.Message
 }
 
-//ProtoBufFunMap 协议function map
-type ProtoBufFunMap map[MessageID]*pbFunHandle
-
-//ProtoBufFun 协议function
-type ProtoBufFun func(recvProtoHeadBuf []byte, obj interface{}, protoMessage *proto.Message) (ret int)
+//协议function map
+type protoBufFunMap map[MessageID]*pbFunHandle
 
 func (p *PbFunMgr) find(messageID MessageID) (pbFunHandle *pbFunHandle) {
 	pbFunHandle, _ = p.pbFunMap[messageID]

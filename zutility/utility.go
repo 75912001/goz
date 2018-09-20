@@ -7,43 +7,45 @@ import (
 	"hash/fnv"
 )
 
-//Int32Min -2147483648
-const Int32Min = ^Int32Max
+const (
+	//Int32Min -2147483648
+	Int32Min = ^Int32Max
 
-//Int32Max 2147483647
-const Int32Max = int32(^uint32(0) >> 1)
+	//Int32Max 2147483647
+	Int32Max = int32(^uint32(0) >> 1)
 
-//Int64Min -9223372036854775808
-const Int64Min = ^Int64Max
+	//Int64Min -9223372036854775808
+	Int64Min = ^Int64Max
 
-//Int64Max 9223372036854775807
-const Int64Max = int64(^uint64(0) >> 1)
+	//Int64Max 9223372036854775807
+	Int64Max = int64(^uint64(0) >> 1)
 
-//Uint32Min 0
-const Uint32Min uint32 = 0
+	//Uint32Min 0
+	Uint32Min uint32 = 0
 
-//Uint32Max 4294967295
-const Uint32Max = ^uint32(0)
+	//Uint32Max 4294967295
+	Uint32Max = ^uint32(0)
 
-//Uint64Min 0
-const Uint64Min = ^Uint64Max
+	//Uint64Min 0
+	Uint64Min = ^Uint64Max
 
-//Uint64Max 18446744073709551615
-const Uint64Max = ^uint64(0)
+	//Uint64Max 18446744073709551615
+	Uint64Max = ^uint64(0)
 
-//IntMin -9223372036854775808
-const IntMin = ^IntMax
+	//IntMin -9223372036854775808
+	IntMin = ^IntMax
 
-//IntMax 9223372036854775807
-const IntMax = int(^uint(0) >> 1)
+	//IntMax 9223372036854775807
+	IntMax = int(^uint(0) >> 1)
 
-//UintMin 0
-const UintMin uint = 0
+	//UintMin 0
+	UintMin uint = 0
 
-//UintMax 18446744073709551615
-const UintMax = ^uint(0)
+	//UintMax 18446744073709551615
+	UintMax = ^uint(0)
+)
 
-//GenMd5 md5
+//GenMd5 生成md5
 func GenMd5(s *string) (value string) {
 	md5Ctx := md5.New()
 	md5Ctx.Write([]byte(*s))
@@ -58,7 +60,7 @@ func HASH(s *string) uint32 {
 	return h.Sum32()
 }
 
-//HASHEL 配合libel库
+//HASHEL 哈希(配合libel库)
 func HASHEL(s *string) uint32 {
 	var h uint32
 	rs := []rune(*s)
@@ -84,7 +86,7 @@ func HASHEL(s *string) uint32 {
 //失败
 //}
 
-//JSON2map JSON => MAP
+//JSON2map JSON转换成为Map
 func JSON2map(strJSON *string) (s map[string]interface{}, err error) {
 	var result map[string]interface{}
 	if err := json.Unmarshal([]byte(*strJSON), &result); err != nil {

@@ -12,14 +12,16 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
+//使用与libel匹配的组播协议
+
 var gLog *zutility.Log
 
 type serverAddr struct {
-	name string
+	name string //32个byte
 	id   uint32
-	ip   string
+	ip   string //16个byte
 	port uint16
-	data string
+	data string //32个byte
 }
 type serverIDMap map[uint32]*serverAddr
 type serverNameMap map[string]serverIDMap
@@ -119,15 +121,6 @@ func (p *AddrMulticast) doAddrSYN() {
 	}
 }
 
-func byteString(p []byte) string {
-	for i := 0; i < len(p); i++ {
-		if p[i] == 0 {
-			return string(p[:i])
-		}
-	}
-	return string(p)
-}
-
 func (p *AddrMulticast) handleRecv() {
 	defer func() {
 		p.conn.Close()
@@ -153,13 +146,13 @@ func (p *AddrMulticast) handleRecv() {
 		bufSvrID := bytes.NewBuffer(recvBuf[4:8])
 		binary.Read(bufSvrID, binary.LittleEndian, &ser.id)
 
-		ser.name = byteString(recvBuf[8:40])
-		ser.ip = byteString(recvBuf[40:56])
+		ser.name = zutility.Byte2String(recvBuf[8:40])
+		ser.ip = zutility.Byte2String(recvBuf[40:56])
 
 		bufPort := bytes.NewBuffer(recvBuf[56:58])
 		binary.Read(bufPort, binary.LittleEndian, &ser.port)
 
-		ser.data = byteString(recvBuf[58:90])
+		ser.data = zutility.Byte2String(recvBuf[58:90])
 
 		if p.selfServerAddr.name != ser.name || p.selfServerAddr.id != ser.id {
 			if nil == p.find(ser.name, ser.id) {

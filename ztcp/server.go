@@ -8,16 +8,11 @@ import (
 	"github.com/goz/zutility"
 )
 
-const (
-	recvChanMaxCnt = 1000 //收数据channel的最大数量
-
-)
-
 //PeerConnRecvChan 对端链接接收的Chan
 type PeerConnRecvChan struct {
 	eventType int //0:普通消息,1:断开链接
-	Buf       []byte
-	PeerConn  *PeerConn
+	buf       []byte
+	peerConn  *PeerConn
 }
 
 //Server 己方作为服务
@@ -29,14 +24,13 @@ type Server struct {
 	OnFini           func() int                                   //服务器结束
 	OnPeerConn       func(peerConn *PeerConn) int                 //对端连上
 	OnPeerConnClosed func(peerConn *PeerConn) int                 //对端连接关闭
-	OnPacket         func(peerConn *PeerConn, recvBuf []byte) int //客户端消息
-	//解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
-	OnParseProtoHead func(peerConn *PeerConn, length int) int
+	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
+	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
 	peerConnRecvChan chan PeerConnRecvChan
 }
 
-//Run 运行
-func (p *Server) Run(ip string, port uint16, noDelay bool) (err error) {
+//Run 运行 recvChanMaxCnt:收数据channel的最大数量
+func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32) (err error) {
 	p.IsRun = true
 
 	p.peerConnRecvChan = make(chan PeerConnRecvChan, recvChanMaxCnt)
@@ -56,14 +50,11 @@ func (p *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 	}
 
 	zutility.Lock()
-
 	p.OnInit()
 	zutility.UnLock()
 
 	defer func() {
-
 		zutility.Lock()
-
 		p.OnFini()
 		zutility.UnLock()
 
@@ -78,16 +69,16 @@ func (p *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 
 			zutility.Lock()
 
-			if v.PeerConn.Invalid {
+			if v.peerConn.invalid {
 				zutility.UnLock()
 				continue
 			}
 			if 1 == v.eventType {
-				p.ClosePeer(v.PeerConn)
+				p.ClosePeer(v.peerConn)
 			} else {
-				ret := p.OnPacket(v.PeerConn, v.PeerConn.Buf)
-				if zutility.ErrorCodeDisconnectPeer == ret {
-					p.ClosePeer(v.PeerConn)
+				ret := p.OnPeerPacket(v.peerConn, v.buf)
+				if zutility.ECDisconnectPeer == ret {
+					p.ClosePeer(v.peerConn)
 				}
 			}
 			zutility.UnLock()
@@ -107,9 +98,9 @@ func (p *Server) Run(ip string, port uint16, noDelay bool) (err error) {
 
 //ClosePeer 关闭对方
 func (p *Server) ClosePeer(peerConn *PeerConn) {
-	peerConn.Invalid = true
+	peerConn.invalid = true
 	p.OnPeerConnClosed(peerConn)
-	peerConn.Conn.Close()
+	peerConn.conn.Close()
 }
 
 func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
@@ -146,23 +137,22 @@ func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 
 func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerConn PeerConn
-	peerConn.Conn = conn
+	peerConn.conn = conn
 
 	//优化[消耗内存过大]
 	peerConn.Buf = make([]byte, p.PacketLengthMax)
 
-	var peerIP = peerConn.Conn.RemoteAddr().String()
+	var peerIP = peerConn.conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIP)
 
 	zutility.Lock()
-
 	p.OnPeerConn(&peerConn)
 	zutility.UnLock()
 
 	defer func() {
 		//断开链接.
 		var peerConnRecvChan PeerConnRecvChan
-		peerConnRecvChan.PeerConn = &peerConn
+		peerConnRecvChan.peerConn = &peerConn
 		peerConnRecvChan.eventType = 1
 		p.peerConnRecvChan <- peerConnRecvChan
 	}()
@@ -170,7 +160,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 	var readIndex int
 	for {
 	LoopRead:
-		readNum, err := peerConn.Conn.Read(peerConn.Buf[readIndex:])
+		readNum, err := peerConn.conn.Read(peerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("peerConn.Conn.Read:", readNum, err)
 			return
@@ -196,9 +186,9 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 
 			var peerConnRecvChan PeerConnRecvChan
 			peerConnRecvChan.eventType = 0
-			peerConnRecvChan.Buf = make([]byte, packetLength)
-			peerConnRecvChan.PeerConn = &peerConn
-			copy(peerConnRecvChan.Buf, peerConn.Buf[:packetLength])
+			peerConnRecvChan.buf = make([]byte, packetLength)
+			peerConnRecvChan.peerConn = &peerConn
+			copy(peerConnRecvChan.buf, peerConn.Buf[:packetLength])
 			p.peerConnRecvChan <- peerConnRecvChan
 
 			copy(peerConn.Buf, peerConn.Buf[packetLength:readIndex])

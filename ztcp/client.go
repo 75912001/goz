@@ -9,12 +9,10 @@ import (
 
 //Client 己方作为客户端
 type Client struct {
-	OnConnClosed func(peerConn *PeerConn) int //对端连接关闭
-	//解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
-	OnParseProtoHead func(peerConn *PeerConn, length int) int
-	//对端消息
-	OnPacket func(peerConn *PeerConn) int
-	PeerConn PeerConn
+	OnPeerConnClosed func(peerConn *PeerConn) int             //对端连接关闭
+	OnParseProtoHead func(peerConn *PeerConn, length int) int //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
+	OnPeerPacket     func(peerConn *PeerConn) int             //对端包
+	PeerConn         PeerConn
 }
 
 //Connect 连接
@@ -25,7 +23,7 @@ func (p *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
 		gLog.Crit("net.ResolveTCPAddr:", err, addr)
 		return
 	}
-	p.PeerConn.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	p.PeerConn.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if nil != err {
 		gLog.Crit("net.Dial:", err, addr)
 		return
@@ -40,18 +38,16 @@ func (p *Client) recv(recvBufMax int) {
 	p.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
-
 		zutility.Lock()
-
-		p.OnConnClosed(&p.PeerConn)
+		p.OnPeerConnClosed(&p.PeerConn)
 		zutility.UnLock()
 
-		p.PeerConn.Conn.Close()
+		p.PeerConn.conn.Close()
 	}()
 
 	var readIndex int
 	for {
-		readNum, err := p.PeerConn.Conn.Read(p.PeerConn.Buf[readIndex:])
+		readNum, err := p.PeerConn.conn.Read(p.PeerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("Conn.Read:", readNum, err)
 			break
@@ -73,7 +69,8 @@ func (p *Client) recv(recvBufMax int) {
 				gLog.Error("packetLength")
 				break
 			}
-			p.OnPacket(&p.PeerConn)
+			p.OnPeerPacket(&p.PeerConn)
+
 			zutility.UnLock()
 		}
 		copy(p.PeerConn.Buf, p.PeerConn.Buf[packetLength:readIndex])

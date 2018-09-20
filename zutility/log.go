@@ -14,22 +14,18 @@ import (
 	"time"
 )
 
-const (
-	logChanMaxCnt = 1000 //日志channel的最大数量
-)
-
 //日志等级
 const (
-	levelOff int = iota //关闭
-	levelEmerg
-	levelCrit
-	levelError
-	levelWarning
-	levelNotice
-	levelInfo
-	levelDebug
-	levelTrace
-	levelOn //全部打开
+	levelOff     int = iota //0 关闭
+	levelEmerg              //1
+	levelCrit               //2
+	levelError              //3
+	levelWarning            //4
+	levelNotice             //5
+	levelInfo               //6
+	levelDebug              //7
+	levelTrace              //8
+	levelOn                 //9 全部打开
 )
 
 //Log 日志
@@ -42,8 +38,8 @@ type Log struct {
 	namePrefix string //日志文件名称前缀
 }
 
-//Init 初始化
-func (p *Log) Init(name string) (err error) {
+//Init 初始化 logChanMaxCnt:日志channel的最大数量
+func (p *Log) Init(name string, logChanMaxCnt uint32) (err error) {
 	p.level = levelOn
 	p.namePrefix = name
 	p.yyyymmdd = GenYYYYMMDD(time.Now().Unix())
