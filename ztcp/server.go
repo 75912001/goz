@@ -194,6 +194,10 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 			copy(peerConn.Buf, peerConn.Buf[packetLength:readIndex])
 			readIndex -= packetLength
 			zutility.UnLock()
+
+			if 0 == readIndex {
+				goto LoopRead
+			}
 		}
 	}
 }

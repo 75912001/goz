@@ -13,21 +13,18 @@ type PacketLength uint32
 
 //PbFunMgr 管理器
 type PbFunMgr struct {
-	pbFunMap protoBufFunMap
+	pbFunMap ProtoBufFunMap
 	log      *zutility.Log
 }
-
-//协议function
-type protoBufFun func(recvProtoHeadBuf []byte, protoMessage *proto.Message, obj interface{}) (ret int)
 
 //Init 初始化管理器
 func (p *PbFunMgr) Init(v *zutility.Log) {
 	p.log = v
-	p.pbFunMap = make(protoBufFunMap)
+	p.pbFunMap = make(ProtoBufFunMap)
 }
 
 //Register 注册消息
-func (p *PbFunMgr) Register(messageID MessageID, pbFun protoBufFun,
+func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 	protoMessage proto.Message) (ret int) {
 	{
 		pbFunHandle := p.find(messageID)
@@ -64,12 +61,15 @@ func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, RecvBuf 
 }
 
 type pbFunHandle struct {
-	pbFun        protoBufFun
+	pbFun        ProtoBufFun
 	protoMessage *proto.Message
 }
 
-//协议function map
-type protoBufFunMap map[MessageID]*pbFunHandle
+//ProtoBufFunMap 协议function map
+type ProtoBufFunMap map[MessageID]*pbFunHandle
+
+//ProtoBufFun 协议function
+type ProtoBufFun func(recvProtoHeadBuf []byte, protoMessage *proto.Message, obj interface{}) (ret int)
 
 func (p *PbFunMgr) find(messageID MessageID) (pbFunHandle *pbFunHandle) {
 	pbFunHandle, _ = p.pbFunMap[messageID]
