@@ -8,9 +8,15 @@ import (
 	"github.com/goz/zutility"
 )
 
-//PeerConnRecvChan 对端链接接收的Chan
-type PeerConnRecvChan struct {
-	eventType int //0:普通消息,1:断开链接
+const (
+	eventTypeMsg        int = 0 //消息
+	eventTypeDisConnect int = 1 //断开连接
+	eventTypeConnect    int = 2 //链接上
+)
+
+//PeerConnEventChan 对端链接事件的Chan
+type PeerConnEventChan struct {
+	eventType int //0:普通消息,1:断开链接,2:链接上
 	buf       []byte
 	peerConn  *PeerConn
 }
@@ -26,14 +32,14 @@ type Server struct {
 	OnPeerConnClosed func(peerConn *PeerConn) int                 //对端连接关闭
 	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
 	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
-	peerConnRecvChan chan PeerConnRecvChan
+	peerConnRecvChan chan PeerConnEventChan
 }
 
 //Run 运行 recvChanMaxCnt:收数据channel的最大数量
 func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32) (err error) {
 	p.IsRun = true
 
-	p.peerConnRecvChan = make(chan PeerConnRecvChan, recvChanMaxCnt)
+	p.peerConnRecvChan = make(chan PeerConnEventChan, recvChanMaxCnt)
 
 	var addr = ip + ":" + strconv.Itoa(int(port))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
@@ -73,13 +79,15 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 				zutility.UnLock()
 				continue
 			}
-			if 1 == v.eventType {
+			if eventTypeDisConnect == v.eventType {
 				p.ClosePeer(v.peerConn)
-			} else {
+			} else if eventTypeMsg == v.eventType {
 				ret := p.OnPeerPacket(v.peerConn, v.buf)
 				if zutility.ECDisconnectPeer == ret {
 					p.ClosePeer(v.peerConn)
 				}
+			} else if eventTypeConnect == v.eventType {
+				//todo 链接上来的处理
 			}
 			zutility.UnLock()
 		}
@@ -151,7 +159,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 
 	defer func() {
 		//断开链接.
-		var peerConnRecvChan PeerConnRecvChan
+		var peerConnRecvChan PeerConnEventChan
 		peerConnRecvChan.peerConn = &peerConn
 		peerConnRecvChan.eventType = 1
 		p.peerConnRecvChan <- peerConnRecvChan
@@ -184,7 +192,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 				return
 			}
 
-			var peerConnRecvChan PeerConnRecvChan
+			var peerConnRecvChan PeerConnEventChan
 			peerConnRecvChan.eventType = 0
 			peerConnRecvChan.buf = make([]byte, packetLength)
 			peerConnRecvChan.peerConn = &peerConn
