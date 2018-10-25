@@ -4,7 +4,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/goz/zutility"
+	"github.com/75912001/goz/zutility"
 )
 
 //Client 己方作为客户端

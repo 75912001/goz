@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	//_ "github.com/go-sql-driver/mysql"
-	"github.com/goz/zutility"
+	"github.com/75912001/goz/zutility"
 )
 
 var gLog *zutility.Log

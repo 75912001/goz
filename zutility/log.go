@@ -36,20 +36,26 @@ type Log struct {
 	logChan    chan string
 	yyyymmdd   int    //日志年月日
 	namePrefix string //日志文件名称前缀
+	perm       os.FileMode
+	fileFlag   int
+	logFlag    int
 }
 
 //Init 初始化 logChanMaxCnt:日志channel的最大数量
 func (p *Log) Init(name string, logChanMaxCnt uint32) (err error) {
+	p.perm = os.ModePerm
+	p.fileFlag = os.O_CREATE | os.O_APPEND | os.O_RDWR
+	p.logFlag = log.Ltime //log.Ldate|log.Llongfile
 	p.level = levelOn
 	p.namePrefix = name
 	p.yyyymmdd = GenYYYYMMDD(time.Now().Unix())
 
 	logName := p.namePrefix + IntToString(p.yyyymmdd)
-	p.file, err = os.OpenFile(logName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+	p.file, err = os.OpenFile(logName, p.fileFlag, p.perm)
 	if nil != err {
-		return
+		return err
 	}
-	p.logger = log.New(p.file, "", log.Ltime) //log.Ldate|log.Llongfile)
+	p.logger = log.New(p.file, "", p.logFlag)
 
 	p.logChan = make(chan string, logChanMaxCnt)
 	go p.onOutPut()
@@ -140,8 +146,8 @@ func (p *Log) onOutPut() {
 
 			p.yyyymmdd = nowYYYYMMDD
 			logName := p.namePrefix + IntToString(p.yyyymmdd)
-			p.file, _ = os.OpenFile(logName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-			p.logger = log.New(p.file, "", log.Ltime) //log.Ldate|log.Llongfile)
+			p.file, _ = os.OpenFile(logName, p.fileFlag, p.perm)
+			p.logger = log.New(p.file, "", p.logFlag)
 		}
 
 		p.logger.Print(<-p.logChan)

@@ -2,7 +2,7 @@ package zprotobuf
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/goz/zutility"
+	"github.com/75912001/goz/zutility"
 )
 
 //MessageID 消息ID

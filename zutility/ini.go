@@ -24,7 +24,9 @@ package zutility
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -41,10 +43,12 @@ func (p *Ini) Load(path string) (err error) {
 	p.init()
 
 	var file *os.File
-	file, err = os.Open(path)
+	{
+		file, err = os.Open(path)
 
-	if nil != err {
-		return
+		if nil != err {
+			return err
+		}
 	}
 	defer file.Close()
 
@@ -53,8 +57,8 @@ func (p *Ini) Load(path string) (err error) {
 	var section string
 
 	for {
-		line, readErr := reader.ReadString('\n')
-		if nil != readErr {
+		line, err := reader.ReadString('\n')
+		if nil != err {
 			break
 		}
 		line = strings.TrimSpace(line)
@@ -67,6 +71,7 @@ func (p *Ini) Load(path string) (err error) {
 		default:
 			symbolIndex := strings.IndexAny(line, "=")
 			if -1 == symbolIndex {
+				fmt.Println("err: Ini Load no '=' symbol")
 				break
 			}
 			key := line[0:symbolIndex]
@@ -75,7 +80,7 @@ func (p *Ini) Load(path string) (err error) {
 		}
 	}
 
-	return
+	return err
 }
 
 //GetString 获取对应的值
@@ -91,23 +96,23 @@ func (p *Ini) GetString(section string, key string, defaultValue string) (value 
 }
 
 //GetUint32 获取uint32
-func (p *Ini) GetUint32(section string, key string, defaultValue string) (value uint32) {
-	var str string
-	str = p.GetString(section, key, defaultValue)
+func (p *Ini) GetUint32(section string, key string, defaultValue uint32) (value uint32) {
+	def := strconv.FormatUint(uint64(defaultValue), 10)
+	str := p.GetString(section, key, def)
 	return StringToUint32(&str)
 }
 
 //GetInt 获取int
-func (p *Ini) GetInt(section string, key string, defaultValue string) (value int) {
-	var str string
-	str = p.GetString(section, key, defaultValue)
+func (p *Ini) GetInt(section string, key string, defaultValue int) (value int) {
+	def := strconv.Itoa(defaultValue)
+	str := p.GetString(section, key, def)
 	return StringToInt(&str)
 }
 
 //GetUint16 获取uint16
-func (p *Ini) GetUint16(section string, key string, defaultValue string) (value uint16) {
-	var str string
-	str = p.GetString(section, key, defaultValue)
+func (p *Ini) GetUint16(section string, key string, defaultValue uint16) (value uint16) {
+	def := strconv.FormatUint(uint64(defaultValue), 10)
+	str := p.GetString(section, key, def)
 	return StringToUint16(&str)
 }
 

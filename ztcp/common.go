@@ -1,7 +1,7 @@
 package ztcp
 
 import (
-	"github.com/goz/zutility"
+	"github.com/75912001/goz/zutility"
 )
 
 //SetLog 设置日志

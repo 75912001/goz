@@ -13,13 +13,13 @@ var defContentLength int64 = 102400
 type Client struct {
 	Result []byte
 }
-
+ 
 //Get 获取
 func (p *Client) Get(url string) (err error) {
 	resp, err := http.Get(url)
 	if nil != err {
 		gLog.Error("######HttpClient.Get err:", err, url)
-		return err
+		return err 
 	}
 	//	fmt.Println(resp)
 	defer resp.Body.Close()

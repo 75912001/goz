@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goz/zutility"
+	"github.com/75912001/goz/zutility"
 	"golang.org/x/net/ipv4"
 )
 
