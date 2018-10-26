@@ -26,12 +26,12 @@ type Server struct {
 	IsRun           bool   //是否运行
 	PacketLengthMax uint32 //每个socket fd 最大包长
 
-	OnInit           func() int                                   //初始化服务器
-	OnFini           func() int                                   //服务器结束
-	OnPeerConn       func(peerConn *PeerConn) int                 //对端连上
-	OnPeerConnClosed func(peerConn *PeerConn) int                 //对端连接关闭
-	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
-	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
+	OnInit           func() int                                    //初始化服务器
+	OnFini           func() int                                    //服务器结束
+	OnPeerConn       func(peerConn *PeerConn) int                  //对端连上
+	OnPeerConnClosed func(peerConn *PeerConn) int                  //对端连接关闭
+	OnPeerPacket     func(peerConn *PeerConn, recvBuf *[]byte) int //对端包
+	OnParseProtoHead func(peerConn *PeerConn, length int) int      //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
 	peerConnRecvChan chan PeerConnEventChan
 }
 
@@ -82,7 +82,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 			if eventTypeDisConnect == v.eventType {
 				p.ClosePeer(v.peerConn)
 			} else if eventTypeMsg == v.eventType {
-				ret := p.OnPeerPacket(v.peerConn, v.buf)
+				ret := p.OnPeerPacket(v.peerConn, &v.buf)
 				if zutility.ECDisconnectPeer == ret {
 					p.ClosePeer(v.peerConn)
 				}
