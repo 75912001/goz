@@ -27,12 +27,12 @@ func (p *MySQL) Init(log *zutility.Log, ip string, port string, user string, pwd
 	p.db, err = sql.Open("mysql", dataSourceName)
 
 	if err != nil {
-		gLog.Crit("###### mysql open:", err)
+		gLog.Crit("mysql open:", err)
 		return -1
 	}
 	err = p.db.Ping()
 	if err != nil {
-		gLog.Crit("###### ping database: %s", err.Error())
+		gLog.Crit("ping database: %s", err.Error())
 		return -1
 	}
 

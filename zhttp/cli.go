@@ -1,25 +1,25 @@
 package zhttp
 
 import (
-	//	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 )
 
+//100k
 var defContentLength int64 = 102400
 
 //Client 客户端
 type Client struct {
 	Result []byte
 }
- 
+
 //Get 获取
 func (p *Client) Get(url string) (err error) {
 	resp, err := http.Get(url)
 	if nil != err {
-		gLog.Error("######HttpClient.Get err:", err, url)
-		return err 
+		gLog.Error("HttpClient.Get err:", err, url)
+		return err
 	}
 	//	fmt.Println(resp)
 	defer resp.Body.Close()
@@ -37,7 +37,7 @@ func (p *Client) Get(url string) (err error) {
 	p.Result, err = ioutil.ReadAll(resp.Body)
 
 	if nil != err {
-		gLog.Error("######HttpClient.Get err:", err, resp.Body)
+		gLog.Error("HttpClient.Get err:", err, resp.Body)
 	}
 	return err
 }
@@ -46,7 +46,7 @@ func (p *Client) Get(url string) (err error) {
 func (p *Client) Post(urlData string, bodyType string, body io.Reader) (err error) {
 	resp, err := http.Post(urlData, bodyType, body)
 	if nil != err {
-		gLog.Error("######HttpClient.Post err:", err)
+		gLog.Error("HttpClient.Post err:", err)
 		return err
 	}
 

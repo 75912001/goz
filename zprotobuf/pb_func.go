@@ -1,8 +1,8 @@
 package zprotobuf
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/75912001/goz/zutility"
+	"github.com/golang/protobuf/proto"
 )
 
 //MessageID 消息ID
@@ -28,7 +28,7 @@ func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 	protoMessage proto.Message) (ret int) {
 	{
 		pbFunHandle := p.find(messageID)
-		p.log.Trace(messageID)
+		//p.log.Trace(messageID)
 		if nil != pbFunHandle {
 			p.log.Error("MessageId exist:", messageID)
 			return zutility.ECSYS
@@ -45,14 +45,14 @@ func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 }
 
 //OnRecv 收到消息
-func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, RecvBuf []byte, obj interface{}) (ret int) {
+func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf *[]byte, RecvBuf *[]byte, obj interface{}) (ret int) {
 	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
 		p.log.Error("MessageId inexist:", messageID)
 		return zutility.ECDisconnectPeer
 	}
 
-	err := proto.Unmarshal(RecvBuf, *pbFunHandle.protoMessage)
+	err := proto.Unmarshal(*RecvBuf, *pbFunHandle.protoMessage)
 	if nil != err {
 		p.log.Error("proto.Unmarshal:", messageID, err)
 		return zutility.ECDisconnectPeer
@@ -69,7 +69,7 @@ type pbFunHandle struct {
 type ProtoBufFunMap map[MessageID]*pbFunHandle
 
 //ProtoBufFun 协议function
-type ProtoBufFun func(recvProtoHeadBuf []byte, protoMessage *proto.Message, obj interface{}) (ret int)
+type ProtoBufFun func(recvProtoHeadBuf *[]byte, protoMessage *proto.Message, obj interface{}) (ret int)
 
 func (p *PbFunMgr) find(messageID MessageID) (pbFunHandle *pbFunHandle) {
 	pbFunHandle, _ = p.pbFunMap[messageID]
