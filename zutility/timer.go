@@ -18,11 +18,11 @@ func main() {
 	var GTimerMgr zutility.TimerMgr
 	GTimerMgr.Run(100)
 
-	zutility.Lock()
+	//zutility.Lock()
 	for i := int64(1); i < 100; i++ {
 		GTimerMgr.AddSecond(cb, nil, i, t.ApproximateTimeSecond+i)
 	}
-	zutility.UnLock()
+	//zutility.UnLock()
 }
 */
 
@@ -42,7 +42,7 @@ type TimerSecond struct {
 	owner       interface{}
 	data        interface{}
 	function    OnTimerFun //超时调用的函数
-	invalid     bool       //无效(true:不执行,扫描时自动删除)
+	valid       bool       //有效(false:不执行,扫描时自动删除)
 }
 
 //TimerMillisecond 毫秒级定时器
@@ -51,7 +51,7 @@ type TimerMillisecond struct {
 	owner    interface{}
 	data     interface{}
 	function OnTimerFun //超时调用的函数
-	invalid  bool       //无效(true:不执行,扫描时自动删除)
+	valid    bool       //有效(false:不执行,扫描时自动删除)
 }
 
 //Run millisecond:毫秒间隔(如50,则每50毫秒扫描一次毫秒定时器)
@@ -97,12 +97,13 @@ func (p *TimerMgr) AddSecond(cb OnTimerFun, owner interface{}, data interface{},
 
 //DelSecond 删除秒级定时器
 func (p *TimerMgr) DelSecond(t *TimerSecond) {
-	t.invalid = true
+	t.valid = false
 }
 
 //AddMillisecond 添加毫秒级定时器
 func (p *TimerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interface{}, expireMillisecond int64) (t *TimerMillisecond) {
 	t = new(TimerMillisecond)
+	t.valid = true
 	t.data = data
 	t.expire = expireMillisecond
 	t.function = cb
@@ -113,12 +114,13 @@ func (p *TimerMgr) AddMillisecond(cb OnTimerFun, owner interface{}, data interfa
 
 //DelMillisecond 删除毫秒级定时器
 func (p *TimerMgr) DelMillisecond(t *TimerMillisecond) {
-	t.invalid = true
+	t.valid = false
 }
 
 func (p *TimerMgr) addSecond(cb OnTimerFun, owner interface{}, data interface{}, expire int64, oldTimerSecond *TimerSecond) (t *TimerSecond) {
 	if nil == oldTimerSecond {
 		oldTimerSecond = new(TimerSecond)
+		oldTimerSecond.valid = true
 	}
 	oldTimerSecond.data = data
 	oldTimerSecond.expire = expire
@@ -161,7 +163,7 @@ func (p *TimerMgr) scanSecond() {
 		p.secondVec[0].minExpire = Int64Max
 		for e := p.secondVec[0].data.Front(); nil != e; e = next {
 			t := e.Value.(*TimerSecond)
-			if t.invalid {
+			if !t.valid {
 				next = e.Next()
 				p.secondVec[0].data.Remove(e)
 				continue
@@ -185,7 +187,7 @@ func (p *TimerMgr) scanSecond() {
 			p.secondVec[idx].minExpire = Int64Max
 			for e := p.secondVec[idx].data.Front(); e != nil; e = next {
 				t := e.Value.(*TimerSecond)
-				if t.invalid {
+				if !t.valid {
 					next = e.Next()
 					p.secondVec[idx].data.Remove(e)
 					continue
@@ -223,7 +225,7 @@ func (p *TimerMgr) scanMillisecond() {
 	var next *list.Element
 	for e := p.millisecondList.Front(); e != nil; e = next {
 		t := e.Value.(*TimerMillisecond)
-		if t.invalid {
+		if !t.valid {
 			next = e.Next()
 			p.millisecondList.Remove(e)
 			continue
