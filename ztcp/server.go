@@ -87,7 +87,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 					p.ClosePeer(v.peerConn)
 				}
 			} else if eventTypeConnect == v.eventType {
-				//todo 链接上来的处理
+				p.OnPeerConn(v.peerConn)
 			}
 			zutility.UnLock()
 		}
@@ -152,9 +152,15 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerIP = peerConn.conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIP)
 
-	zutility.Lock()
-	p.OnPeerConn(&peerConn)
-	zutility.UnLock()
+	//zutility.Lock()
+	//p.OnPeerConn(&peerConn)
+	//zutility.UnLock()
+	{
+		var peerConnRecvChan PeerConnEventChan
+		peerConnRecvChan.peerConn = &peerConn
+		peerConnRecvChan.eventType = eventTypeConnect
+		p.peerConnRecvChan <- peerConnRecvChan
+	}
 
 	defer func() {
 		//断开链接.
@@ -176,16 +182,16 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 		readIndex += readNum
 
 		for {
-			zutility.Lock()
+			//	zutility.Lock()
 
 			packetLength := p.OnParseProtoHead(&peerConn, readIndex)
 			if 0 == packetLength {
-				zutility.UnLock()
+				//		zutility.UnLock()
 				goto LoopRead
 			}
 
 			if -1 == packetLength {
-				zutility.UnLock()
+				//		zutility.UnLock()
 				gLog.Error("packetLength")
 				return
 			}
@@ -199,7 +205,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 
 			copy(peerConn.Buf, peerConn.Buf[packetLength:readIndex])
 			readIndex -= packetLength
-			zutility.UnLock()
+			//	zutility.UnLock()
 
 			if 0 == readIndex {
 				goto LoopRead
