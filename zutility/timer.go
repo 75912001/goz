@@ -18,11 +18,9 @@ func main() {
 	var GTimerMgr zutility.TimerMgr
 	GTimerMgr.Run(100)
 
-	//zutility.Lock()
 	for i := int64(1); i < 100; i++ {
 		GTimerMgr.AddSecond(cb, nil, i, t.ApproximateTimeSecond+i)
 	}
-	//zutility.UnLock()
 }
 */
 

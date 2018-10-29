@@ -28,7 +28,6 @@ func (p *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
 		gLog.Crit("net.Dial:", err, addr)
 		return err
 	}
-	p.PeerConn.valid = true
 
 	go p.recv(recvBufMax)
 	return nil
@@ -42,7 +41,6 @@ func (p *Client) recv(recvBufMax int) {
 		p.OnPeerConnClosed(&p.PeerConn)
 		p.PeerConn.conn.Close()
 		p.PeerConn.conn = nil
-		p.PeerConn.valid = false
 		zutility.UnLock()
 	}()
 

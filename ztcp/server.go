@@ -74,7 +74,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 		for v := range p.peerConnRecvChan {
 			zutility.Lock()
 
-			if nil == v.peerConn.conn || !v.peerConn.valid {
+			if !v.peerConn.IsValid() {
 				zutility.UnLock()
 				continue
 			}
@@ -106,7 +106,6 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 
 //ClosePeer 关闭对方
 func (p *Server) ClosePeer(peerConn *PeerConn) {
-	peerConn.valid = false
 	p.OnPeerConnClosed(peerConn)
 	peerConn.conn.Close()
 	peerConn.conn = nil
@@ -147,7 +146,6 @@ func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerConn PeerConn
 	peerConn.conn = conn
-	peerConn.valid = true
 
 	peerConn.Buf = make([]byte, p.PacketLengthMax)
 
