@@ -8,15 +8,9 @@ import (
 	"github.com/75912001/goz/zutility"
 )
 
-const (
-	eventTypeMsg        int = 0 //消息
-	eventTypeDisConnect int = 1 //断开连接
-	eventTypeConnect    int = 2 //链接上
-)
-
 //PeerConnEventChan 对端链接事件的Chan
 type PeerConnEventChan struct {
-	eventType int //0:普通消息,1:断开链接,2:链接上
+	eventType int //0:普通消息,1:断开链接,2:链接上,3:send
 	buf       []byte
 	peerConn  *PeerConn
 }
@@ -33,6 +27,8 @@ type Server struct {
 	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
 	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
 	peerConnRecvChan chan PeerConnEventChan
+
+	peerConnSendChan chan PeerConnEventChan
 }
 
 //Run 运行 recvChanMaxCnt:收数据channel的最大数量
@@ -40,6 +36,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 	p.IsRun = true
 
 	p.peerConnRecvChan = make(chan PeerConnEventChan, recvChanMaxCnt)
+	p.peerConnSendChan = make(chan PeerConnEventChan, recvChanMaxCnt)
 
 	var addr = ip + ":" + strconv.Itoa(int(port))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
@@ -93,6 +90,27 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 		}
 	}()
 
+	go func() {
+		//处理待发的数据(这里与接收 使用同一个互斥锁，性能无任何提升。)
+		for v := range p.peerConnSendChan {
+			zutility.Lock()
+			if !v.peerConn.IsValid() {
+				zutility.UnLock()
+				continue
+			}
+
+			//Send 发送消息
+			_, err = v.peerConn.conn.Write(v.buf)
+
+			if nil != err {
+				zutility.UnLock()
+				continue
+			}
+
+			zutility.UnLock()
+		}
+	}()
+
 	//优化[使用信号通知的方式结束循环]
 	for p.IsRun {
 		time.Sleep(1 * time.Second)
@@ -102,6 +120,18 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 	gLog.Crit("server done...")
 
 	return
+}
+
+//发送到channel中
+func (p *Server) Send(peer *PeerConn, msgBuf []byte) {
+	{
+		var peerConnSendChan PeerConnEventChan
+		peerConnSendChan.peerConn = peer
+		peerConnSendChan.eventType = eventTypeSendMsg
+		peerConnSendChan.buf = make([]byte, len(msgBuf))
+		copy(peerConnSendChan.buf, msgBuf[:])
+		p.peerConnSendChan <- peerConnSendChan
+	}
 }
 
 //ClosePeer 关闭对方

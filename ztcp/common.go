@@ -11,3 +11,10 @@ func SetLog(v *zutility.Log) {
 
 ////////////////////////////////////////////////////////////////////////////////
 var gLog *zutility.Log
+
+const (
+	eventTypeMsg        int = 0 //??
+	eventTypeDisConnect int = 1 //????
+	eventTypeConnect    int = 2 //???
+	eventTypeSendMsg    int = 3 //??????
+)
