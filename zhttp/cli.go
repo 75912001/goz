@@ -7,7 +7,7 @@ import (
 )
 
 //100k
-var defContentLength int64 = 102400
+//var defContentLength int64 = 102400
 
 //Client 客户端
 type Client struct {
@@ -24,14 +24,14 @@ func (p *Client) Get(url string) (err error) {
 	//	fmt.Println(resp)
 	defer resp.Body.Close()
 
-	var contentLength int64
-	if resp.ContentLength < 0 {
-		contentLength = defContentLength
-	} else {
-		contentLength = resp.ContentLength
-	}
+	//	var contentLength int64
+	//	if resp.ContentLength < 0 {
+	//		contentLength = defContentLength
+	//	} else {
+	//		contentLength = resp.ContentLength
+	//	}
 
-	p.Result = make([]byte, contentLength)
+	//	p.Result = make([]byte, contentLength)
 
 	//	fmt.Println(resp.Body)
 	p.Result, err = ioutil.ReadAll(resp.Body)
@@ -52,14 +52,14 @@ func (p *Client) Post(urlData string, bodyType string, body io.Reader) (err erro
 
 	defer resp.Body.Close()
 
-	var contentLength int64
-	if resp.ContentLength < 0 {
-		contentLength = defContentLength
-	} else {
-		contentLength = resp.ContentLength
-	}
+	//	var contentLength int64
+	//	if resp.ContentLength < 0 {
+	//		contentLength = defContentLength
+	//	} else {
+	//		contentLength = resp.ContentLength
+	//	}
 
-	p.Result = make([]byte, contentLength)
+	//	p.Result = make([]byte, contentLength)
 
 	p.Result, err = ioutil.ReadAll(resp.Body)
 	return err

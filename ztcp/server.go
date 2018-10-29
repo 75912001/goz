@@ -26,12 +26,12 @@ type Server struct {
 	IsRun           bool   //是否运行
 	PacketLengthMax uint32 //每个socket fd 最大包长
 
-	OnInit           func() int                                    //初始化服务器
-	OnFini           func() int                                    //服务器结束
-	OnPeerConn       func(peerConn *PeerConn) int                  //对端连上
-	OnPeerConnClosed func(peerConn *PeerConn) int                  //对端连接关闭
-	OnPeerPacket     func(peerConn *PeerConn, recvBuf *[]byte) int //对端包
-	OnParseProtoHead func(peerConn *PeerConn, length int) int      //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
+	OnInit           func() int                                   //初始化服务器
+	OnFini           func() int                                   //服务器结束
+	OnPeerConn       func(peerConn *PeerConn) int                 //对端连上
+	OnPeerConnClosed func(peerConn *PeerConn) int                 //对端连接关闭
+	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
+	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
 	peerConnRecvChan chan PeerConnEventChan
 }
 
@@ -45,7 +45,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if nil != err {
 		gLog.Crit("net.ResolveTCPAddr:", err)
-		return
+		return err
 	}
 	//优化[设置地址复用]
 	//优化[设置监听的缓冲数量]
@@ -72,17 +72,17 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 	go func() {
 		//处理收到的数据
 		for v := range p.peerConnRecvChan {
-
 			zutility.Lock()
 
-			if v.peerConn.invalid {
+			if nil == v.peerConn.conn || !v.peerConn.valid {
 				zutility.UnLock()
 				continue
 			}
+
 			if eventTypeDisConnect == v.eventType {
 				p.ClosePeer(v.peerConn)
 			} else if eventTypeMsg == v.eventType {
-				ret := p.OnPeerPacket(v.peerConn, &v.buf)
+				ret := p.OnPeerPacket(v.peerConn, v.buf)
 				if zutility.ECDisconnectPeer == ret {
 					p.ClosePeer(v.peerConn)
 				}
@@ -106,9 +106,10 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 
 //ClosePeer 关闭对方
 func (p *Server) ClosePeer(peerConn *PeerConn) {
-	peerConn.invalid = true
+	peerConn.valid = false
 	p.OnPeerConnClosed(peerConn)
 	peerConn.conn.Close()
+	peerConn.conn = nil
 }
 
 func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
@@ -146,8 +147,8 @@ func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerConn PeerConn
 	peerConn.conn = conn
+	peerConn.valid = true
 
-	//优化[消耗内存过大]
 	peerConn.Buf = make([]byte, p.PacketLengthMax)
 
 	var peerIP = peerConn.conn.RemoteAddr().String()
@@ -161,7 +162,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 		//断开链接.
 		var peerConnRecvChan PeerConnEventChan
 		peerConnRecvChan.peerConn = &peerConn
-		peerConnRecvChan.eventType = 1
+		peerConnRecvChan.eventType = eventTypeDisConnect
 		p.peerConnRecvChan <- peerConnRecvChan
 	}()
 
@@ -177,7 +178,6 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 		readIndex += readNum
 
 		for {
-
 			zutility.Lock()
 
 			packetLength := p.OnParseProtoHead(&peerConn, readIndex)
@@ -193,7 +193,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 			}
 
 			var peerConnRecvChan PeerConnEventChan
-			peerConnRecvChan.eventType = 0
+			peerConnRecvChan.eventType = eventTypeMsg
 			peerConnRecvChan.buf = make([]byte, packetLength)
 			peerConnRecvChan.peerConn = &peerConn
 			copy(peerConnRecvChan.buf, peerConn.Buf[:packetLength])

@@ -21,28 +21,29 @@ func (p *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	if nil != err {
 		gLog.Crit("net.ResolveTCPAddr:", err, addr)
-		return
+		return err
 	}
 	p.PeerConn.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if nil != err {
 		gLog.Crit("net.Dial:", err, addr)
-		return
+		return err
 	}
+	p.PeerConn.valid = true
 
 	go p.recv(recvBufMax)
-	return
+	return nil
 }
 
 func (p *Client) recv(recvBufMax int) {
-	//优化[消耗内存过大]
 	p.PeerConn.Buf = make([]byte, recvBufMax)
 
 	defer func() {
 		zutility.Lock()
 		p.OnPeerConnClosed(&p.PeerConn)
-		zutility.UnLock()
-
 		p.PeerConn.conn.Close()
+		p.PeerConn.conn = nil
+		p.PeerConn.valid = false
+		zutility.UnLock()
 	}()
 
 	var readIndex int
@@ -75,26 +76,5 @@ func (p *Client) recv(recvBufMax int) {
 		}
 		copy(p.PeerConn.Buf, p.PeerConn.Buf[packetLength:readIndex])
 		readIndex -= packetLength
-
-		//以下移到应用层OnParseProtoHead中
-		/*
-			if readIndex < GProtoHeadLength { //长度不足一个包头中的长度大小
-				continue
-			}
-
-			p.PeerConn.parseProtoHeadPacketLength()
-
-			if int(p.PeerConn.ProtoHead.PacketLength) < GProtoHeadLength {
-				gLog.Error("client.PeerConn.ProtoHead.PacketLength:", p.PeerConn.ProtoHead.PacketLength)
-				break
-			}
-
-			if readIndex < int(p.PeerConn.ProtoHead.PacketLength) {
-				continue
-			}
-
-			//有完整的包
-			p.PeerConn.parseProtoHead()
-		*/
 	}
 }
