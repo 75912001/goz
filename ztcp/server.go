@@ -10,7 +10,7 @@ import (
 
 //PeerConnEventChan 对端链接事件的Chan
 type PeerConnEventChan struct {
-	eventType int //0:普通消息,1:断开链接,2:链接上,3:send
+	eventType int //0:收到消息,1:断开链接,2:链接上,3:发送
 	buf       []byte
 	peerConn  *PeerConn
 }
@@ -27,7 +27,6 @@ type Server struct {
 	OnPeerPacket     func(peerConn *PeerConn, recvBuf []byte) int //对端包
 	OnParseProtoHead func(peerConn *PeerConn, length int) int     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
 	peerConnRecvChan chan PeerConnEventChan
-
 	peerConnSendChan chan PeerConnEventChan
 }
 
@@ -78,7 +77,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 
 			if eventTypeDisConnect == v.eventType {
 				p.ClosePeer(v.peerConn)
-			} else if eventTypeMsg == v.eventType {
+			} else if eventTypeRecvMsg == v.eventType {
 				ret := p.OnPeerPacket(v.peerConn, v.buf)
 				if zutility.ECDisconnectPeer == ret {
 					p.ClosePeer(v.peerConn)
@@ -91,7 +90,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 	}()
 
 	go func() {
-		//处理待发的数据(这里与接收 使用同一个互斥锁，性能无任何提升。)
+		//处理待发的数据(这里与处理接收到的数据 使用同一个互斥锁，性能无任何提升。)
 		for v := range p.peerConnSendChan {
 			zutility.Lock()
 			if !v.peerConn.IsValid() {
@@ -101,7 +100,6 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 
 			//Send 发送消息
 			_, err = v.peerConn.conn.Write(v.buf)
-
 			if nil != err {
 				zutility.UnLock()
 				continue
@@ -123,7 +121,9 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 }
 
 //发送到channel中
-func (p *Server) Send(peer *PeerConn, msgBuf []byte) {
+func (p *Server) AsyncSend(peer *PeerConn, msgBuf []byte) {
+	//已完成(会将本应该立即发送的消息，放入队列中，不能保证发送消息的顺序在 队列中已接收消息之前处理)
+	return
 	{
 		var peerConnSendChan PeerConnEventChan
 		peerConnSendChan.peerConn = peer
@@ -182,9 +182,6 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerIP = peerConn.conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIP)
 
-	//zutility.Lock()
-	//p.OnPeerConn(&peerConn)
-	//zutility.UnLock()
 	{
 		var peerConnRecvChan PeerConnEventChan
 		peerConnRecvChan.peerConn = &peerConn
@@ -212,22 +209,18 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 		readIndex += readNum
 
 		for {
-			//	zutility.Lock()
-
 			packetLength := p.OnParseProtoHead(&peerConn, readIndex)
 			if 0 == packetLength {
-				//		zutility.UnLock()
 				goto LoopRead
 			}
 
 			if -1 == packetLength {
-				//		zutility.UnLock()
 				gLog.Error("packetLength")
 				return
 			}
 
 			var peerConnRecvChan PeerConnEventChan
-			peerConnRecvChan.eventType = eventTypeMsg
+			peerConnRecvChan.eventType = eventTypeRecvMsg
 			peerConnRecvChan.buf = make([]byte, packetLength)
 			peerConnRecvChan.peerConn = &peerConn
 			copy(peerConnRecvChan.buf, peerConn.Buf[:packetLength])
@@ -235,7 +228,6 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 
 			copy(peerConn.Buf, peerConn.Buf[packetLength:readIndex])
 			readIndex -= packetLength
-			//	zutility.UnLock()
 
 			if 0 == readIndex {
 				goto LoopRead

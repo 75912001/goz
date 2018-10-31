@@ -45,14 +45,14 @@ func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 }
 
 //OnRecv 收到消息
-func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, RecvBuf []byte, obj interface{}) (ret int) {
+func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, recvBuf []byte, obj interface{}) (ret int) {
 	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
 		p.log.Error("MessageId inexist:", messageID)
 		return zutility.ECDisconnectPeer
 	}
 
-	err := proto.Unmarshal(RecvBuf, *pbFunHandle.protoMessage)
+	err := proto.Unmarshal(recvBuf, *pbFunHandle.protoMessage)
 	if nil != err {
 		p.log.Error("proto.Unmarshal:", messageID, err)
 		return zutility.ECDisconnectPeer

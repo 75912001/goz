@@ -8,7 +8,6 @@ import (
 type PeerConn struct {
 	conn *net.TCPConn //连接
 	Buf  []byte
-	//	valid bool //有效
 }
 
 //Send 发送消息
