@@ -12,7 +12,15 @@ func UnLock() {
 	gLock.Unlock()
 }
 
+func RLock() {
+	gLock.RLock()
+}
+
+func RUnLock() {
+	gLock.RUnlock()
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 //锁定顺序
-var gLock sync.Mutex
+var gLock sync.RWMutex
