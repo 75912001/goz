@@ -23,7 +23,7 @@ func (p *Client) Connect(ip string, port uint16, recvBufMax int) (err error) {
 		gLog.Crit("net.ResolveTCPAddr:", err, addr)
 		return err
 	}
-	p.PeerConn.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	p.PeerConn.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if nil != err {
 		gLog.Crit("net.Dial:", err, addr)
 		return err
@@ -39,14 +39,14 @@ func (p *Client) recv(recvBufMax int) {
 	defer func() {
 		zutility.Lock()
 		p.OnPeerConnClosed(&p.PeerConn)
-		p.PeerConn.conn.Close()
-		p.PeerConn.conn = nil
+		p.PeerConn.Conn.Close()
+		p.PeerConn.Conn = nil
 		zutility.UnLock()
 	}()
 
 	var readIndex int
 	for {
-		readNum, err := p.PeerConn.conn.Read(p.PeerConn.Buf[readIndex:])
+		readNum, err := p.PeerConn.Conn.Read(p.PeerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("Conn.Read:", readNum, err)
 			break

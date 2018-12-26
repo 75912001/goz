@@ -99,7 +99,7 @@ func (p *Server) Run(ip string, port uint16, noDelay bool, recvChanMaxCnt uint32
 			}
 
 			//Send 发送消息
-			_, err = v.peerConn.conn.Write(v.buf)
+			_, err = v.peerConn.Conn.Write(v.buf)
 			if nil != err {
 				zutility.UnLock()
 				continue
@@ -137,8 +137,8 @@ func (p *Server) AsyncSend(peer *PeerConn, msgBuf []byte) {
 //ClosePeer 关闭对方
 func (p *Server) ClosePeer(peerConn *PeerConn) {
 	p.OnPeerConnClosed(peerConn)
-	peerConn.conn.Close()
-	peerConn.conn = nil
+	peerConn.Conn.Close()
+	peerConn.Conn = nil
 }
 
 func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
@@ -175,11 +175,11 @@ func (p *Server) handleAccept(listen *net.TCPListener, noDelay bool) {
 
 func (p *Server) handleConnection(conn *net.TCPConn) {
 	var peerConn PeerConn
-	peerConn.conn = conn
+	peerConn.Conn = conn
 
 	peerConn.Buf = make([]byte, p.PacketLengthMax)
 
-	var peerIP = peerConn.conn.RemoteAddr().String()
+	var peerIP = peerConn.Conn.RemoteAddr().String()
 	gLog.Trace("connection from:", peerIP)
 
 	{
@@ -200,7 +200,7 @@ func (p *Server) handleConnection(conn *net.TCPConn) {
 	var readIndex int
 	for {
 	LoopRead:
-		readNum, err := peerConn.conn.Read(peerConn.Buf[readIndex:])
+		readNum, err := peerConn.Conn.Read(peerConn.Buf[readIndex:])
 		if nil != err {
 			gLog.Error("peerConn.Conn.Read:", readNum, err)
 			return

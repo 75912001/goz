@@ -1,12 +1,18 @@
 package zutility
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"hash/fnv"
+	"io/ioutil"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
+////////////////////////////////////////////////////////////////////////////////
 const (
 	//Int32Min -2147483648
 	Int32Min = ^Int32Max
@@ -93,4 +99,13 @@ func JSON2map(strJSON *string) (s map[string]interface{}, err error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func GbkToUtf8(s []byte) ([]byte, error) {
+	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewDecoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
 }

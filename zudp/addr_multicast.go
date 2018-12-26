@@ -53,13 +53,13 @@ func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 	p.mcaddr, err = net.ResolveUDPAddr("udp4", strAddr)
 	if nil != err {
 		gLog.Crit("net.ResolveUDPAddr err:", err)
-		return
+		return err
 	}
 
 	p.conn, err = net.ListenUDP("udp4", p.mcaddr)
 	if err != nil {
 		gLog.Crit("ListenUDP err:", err)
-		return
+		return err
 	}
 
 	pc := ipv4.NewPacketConn(p.conn)
@@ -67,14 +67,14 @@ func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 	iface, err := net.InterfaceByName(netName)
 	if nil != err {
 		gLog.Crit("can't find specified interface err:", err)
-		return
+		return err
 	}
 
 	strAddrIpv4, _ := net.ResolveIPAddr("ip4", ip)
 	err = pc.JoinGroup(iface, strAddrIpv4)
 	if nil != err {
 		gLog.Crit("err:", err, strAddrIpv4)
-		return
+		return err
 	}
 
 	if loop, err := pc.MulticastLoopback(); err == nil {
@@ -110,7 +110,7 @@ func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 			time.Sleep(time.Duration(rand.Intn(20)+20) * time.Second)
 		}
 	}()
-	return
+	return err
 }
 
 func (p *AddrMulticast) doAddrSYN() {

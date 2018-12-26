@@ -59,7 +59,7 @@ func (p *Log) Init(name string, logChanMaxCnt uint32) (err error) {
 
 	p.logChan = make(chan string, logChanMaxCnt)
 	go p.onOutPut()
-	return
+	return err
 }
 
 //SetLevel 设置日志等级
