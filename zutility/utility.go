@@ -109,3 +109,12 @@ func GbkToUtf8(s []byte) ([]byte, error) {
 	}
 	return d, nil
 }
+
+func GB2312ToUtf8(s []byte) ([]byte, error) {
+	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.HZGB2312.NewDecoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
+}
