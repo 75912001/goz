@@ -16,16 +16,16 @@ import (
 
 //日志等级
 const (
-	levelOff     int = iota //0 关闭
-	levelEmerg              //1
-	levelCrit               //2
-	levelError              //3
-	levelWarning            //4
-	levelNotice             //5
-	levelInfo               //6
-	levelDebug              //7
-	levelTrace              //8
-	levelOn                 //9 全部打开
+	levelOff     int = 0 //关闭
+	levelEmerg   int = 1
+	levelCrit    int = 2
+	levelError   int = 3
+	levelWarning int = 4
+	levelNotice  int = 5
+	levelInfo    int = 6
+	levelDebug   int = 7
+	levelTrace   int = 8
+	levelOn      int = 9 //9 全部打开
 )
 
 //Log 日志

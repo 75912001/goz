@@ -19,7 +19,7 @@ func main() {
 	GTimerMgr.Run(100)
 
 	for i := int64(1); i < 100; i++ {
-		GTimerMgr.AddSecond(cb, nil, i, t.ApproximateTimeSecond+i)
+		GTimerMgr.AddSecond(cb, nil, i, t.Second+i)
 	}
 }
 */
