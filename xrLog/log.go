@@ -179,7 +179,9 @@ func (p *Log) onOutPut() {
 //路径,文件名,行数,函数名称
 
 func (p *Log) outPut(calldepth int, prefix *string, str *string) {
-	pc, file, line, ok := runtime.Caller(calldepth)
+	//pc, file, line, ok := runtime.Caller(calldepth)
+	pc, _, line, ok := runtime.Caller(calldepth)
+
 	if true != ok {
 		return
 	}
@@ -187,5 +189,7 @@ func (p *Log) outPut(calldepth int, prefix *string, str *string) {
 
 	var strLine = strconv.Itoa(line)
 
-	p.logChan <- "[" + *prefix + "][" + file + "][" + funName + "][" + strLine + "]" + *str
+	//p.logChan <- "[" + *prefix + "][" + file + "][" + funName + "][" + strLine + "]" + *str
+	p.logChan <- "[" + *prefix + "][" + funName + "][" + strLine + "]" + *str
+
 }
