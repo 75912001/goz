@@ -16,16 +16,27 @@ import (
 
 //日志等级
 const (
-	levelOff     int = 0 //关闭
-	levelEmerg   int = 1
-	levelCrit    int = 2
-	levelError   int = 3
-	levelWarning int = 4
-	levelNotice  int = 5
-	levelInfo    int = 6
-	levelDebug   int = 7
-	levelTrace   int = 8
-	levelOn      int = 9 //9 全部打开
+	levelOff    int = 0 //关闭
+	levelEmerg  int = 1
+	levelCrit   int = 2
+	levelError  int = 3
+	levelWarn   int = 4
+	levelNotice int = 5
+	levelInfo   int = 6
+	levelDebug  int = 7
+	levelTrace  int = 8
+	levelOn     int = 9 //9 全部打开
+)
+
+var (
+	strEmerg  string = "emerg"
+	strCrit   string = "crit"
+	strError  string = "error"
+	strWarn   string = "warn"
+	strNotice string = "ntice"
+	strInfo   string = "info"
+	strDebug  string = "debug"
+	strTrace  string = "trace"
 )
 
 //Log 日志
@@ -77,7 +88,8 @@ func (p *Log) Trace(v ...interface{}) {
 	if p.level < levelTrace {
 		return
 	}
-	p.outPut(2, "trace", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strTrace, &body)
 }
 
 //Debug 调试日志
@@ -85,7 +97,8 @@ func (p *Log) Debug(v ...interface{}) {
 	if p.level < levelDebug {
 		return
 	}
-	p.outPut(2, "debug", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strDebug, &body)
 }
 
 //Info 报告日志
@@ -93,7 +106,8 @@ func (p *Log) Info(v ...interface{}) {
 	if p.level < levelInfo {
 		return
 	}
-	p.outPut(2, "info", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strInfo, &body)
 }
 
 //Notice 公告日志
@@ -101,15 +115,17 @@ func (p *Log) Notice(v ...interface{}) {
 	if p.level < levelNotice {
 		return
 	}
-	p.outPut(2, "notice", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strNotice, &body)
 }
 
-//Warning 警告日志
-func (p *Log) Warning(v ...interface{}) {
-	if p.level < levelWarning {
+//Warn 警告日志
+func (p *Log) Warn(v ...interface{}) {
+	if p.level < levelWarn {
 		return
 	}
-	p.outPut(2, "warning", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strWarn, &body)
 }
 
 //Error 错误日志
@@ -117,7 +133,8 @@ func (p *Log) Error(v ...interface{}) {
 	if p.level < levelError {
 		return
 	}
-	p.outPut(2, "error", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strError, &body)
 }
 
 //Crit 临界日志
@@ -125,7 +142,8 @@ func (p *Log) Crit(v ...interface{}) {
 	if p.level < levelCrit {
 		return
 	}
-	p.outPut(2, "crit", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strCrit, &body)
 }
 
 //Emerg 不可用日志
@@ -133,7 +151,9 @@ func (p *Log) Emerg(v ...interface{}) {
 	if p.level < levelEmerg {
 		return
 	}
-	p.outPut(2, "emerg", fmt.Sprintln(v...))
+	body := fmt.Sprintln(v...)
+	p.outPut(2, &strEmerg, &body)
+	//p.outPut(2, &strEmerg, v)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,7 +175,8 @@ func (p *Log) onOutPut() {
 }
 
 //路径,文件名,行数,函数名称
-func (p *Log) outPut(calldepth int, prefix string, str string) {
+
+func (p *Log) outPut(calldepth int, prefix *string, str *string) {
 	pc, file, line, ok := runtime.Caller(calldepth)
 	if true != ok {
 		return
@@ -163,5 +184,6 @@ func (p *Log) outPut(calldepth int, prefix string, str string) {
 	funName := runtime.FuncForPC(pc).Name()
 
 	var strLine = strconv.Itoa(line)
-	p.logChan <- "[" + prefix + "][" + file + "][" + strLine + "][" + funName + "]" + str
+
+	p.logChan <- "[" + *prefix + "][" + file + "][" + funName + "][" + strLine + "]" + *str
 }

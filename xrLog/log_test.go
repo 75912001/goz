@@ -2,6 +2,7 @@ package xrLog
 
 import (
 	"testing"
+	"time"
 )
 
 /*
@@ -15,17 +16,17 @@ L2 缓存（每个核）：	256 KB
 L3 缓存：	6 MB
 内存：	16 GB
 
-每行126字节
-共125878284byte=>120M
+每行65字节
+共65,000,000 byte=>62M
 ////////////////////////////////////////////////////////////////////////////////
-100W 7.678s=>130242/s=>130/ms
-125878284 字节=>16394671byte/s=>16010k/s=>15M/s
+100W 7.721s=>129516次/s=>130次/ms
 */
 func TestLog(t *testing.T) {
 	var log *Log = new(Log)
 	log.Init("test_log")
 
-	for i := 1; i < 1000000; i++ {
+	for i := 1; i <= 1000000; i++ {
 		log.Emerg("debug")
 	}
+	time.Sleep(1 * time.Second)
 }

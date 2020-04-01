@@ -2,7 +2,6 @@ package xrLog
 
 //使用系统log,自带锁
 //使用协程操作io输出日志
-//目前性能:20W行/s,20M/s
 //每天自动创建新的日志文件
 
 import (
@@ -191,5 +190,7 @@ func (p *Log) outPut(calldepth int, prefix *string, str *string) {
 
 	//p.logChan <- "[" + *prefix + "][" + file + "][" + funName + "][" + strLine + "]" + *str
 	p.logChan <- "[" + *prefix + "][" + funName + "][" + strLine + "]" + *str
+	//	s := "[" + *prefix + "][" + funName + "][" + strLine + "]" + *str
+	//	p.logChan <- &s
 
 }

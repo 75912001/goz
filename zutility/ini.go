@@ -71,7 +71,7 @@ func (p *Ini) Load(path string) (err error) {
 		default:
 			symbolIndex := strings.IndexAny(line, "=")
 			if -1 == symbolIndex {
-				fmt.Println("err: Ini Load no '=' symbol")
+				fmt.Println("err: Ini Load no '=' symbol:", line)
 				break
 			}
 			key := line[0:symbolIndex]
@@ -114,6 +114,13 @@ func (p *Ini) GetUint16(section string, key string, defaultValue uint16) (value 
 	def := strconv.FormatUint(uint64(defaultValue), 10)
 	str := p.GetString(section, key, def)
 	return StringToUint16(&str)
+}
+
+//GetInt64 获取int64
+func (p *Ini) GetInt64(section string, key string, defaultValue int64) (value int64) {
+	def := strconv.FormatInt(int64(defaultValue), 10)
+	str := p.GetString(section, key, def)
+	return StringToInt64(&str)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

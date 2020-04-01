@@ -17,4 +17,5 @@ const (
 	eventTypeDisConnect int = 1
 	eventTypeConnect    int = 2
 	eventTypeSendMsg    int = 3
+	eventTypeTimerOut   int = 4
 )

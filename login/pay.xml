@@ -1,0 +1,49 @@
+﻿<root>
+	<!--
+	id:序号
+	item_id:获取的道具ID
+	item_cnt:获取道具的数量
+	rmb:花费rmb数额
+	type:1:消费道具.2:按天领取的卡.3:首次充值(每个项目,每个帐号只能购买一次) 4:每日首次充值(每个项目,每日只能购买一次)
+        5:周期活动(每个周期只能购买一次)  startTime：活动开始时间  endTime:活动结束时间  cuccFlag:天津联通是否显示
+	product:商品,天津上线的金额商品，product命名规则不能更改，遵循之前的命名规则
+        payitem:购买月卡后一次性给的金币
+	agentLv:代理购买等级  不填,默认为0
+	-->
+	<!--<pay id="1" name="10点券" type="1" extra="0" item="100001,10" rmb="0.1" product="tjlhxkgddj0o1"/>-->
+	<!--<pay id="2" name="20点券" type="1" extra="0" item="100000,20" rmb="2.0" product="tjlhxkgddj002"/>-->
+	<pay id="3" name="50点券" type="1" extra="0" item="100000,50" rmb="5.0" product="tjlhxkgddj005" productPuTao="qjqp010" agentLv="0"  notice="0"/>
+	<!--<pay id="4" name="100点券" type="1" extra="0" item="100000,100" rmb="10.0" product="tjlhxkgddj010"/>-->
+	<!--<pay id="5" name="180点券" type="1" extra="0" item="100000,180" rmb="18.0" product="tjlhxkgddj018"/>-->
+	<pay id="6" name="300点券" type="1" extra="0" item="100000,330" rmb="30.0" product="tjlhxkgddj030" productPuTao="qjqp011" agentLv="0"  notice="0"/>
+	<pay id="7" name="500点券" type="1" extra="0" item="100000,580" rmb="50.0" product="tjlhxkgddj050" productPuTao="qjqp012" agentLv="0"  notice="1"/>
+	<pay id="8" name="1000点券" type="1" extra="0" item="100000,1200" rmb="100.0" product="tjlhxkgddj100" productPuTao="qjqp013" agentLv="0"  notice="1"/>
+	<pay id="9" name="2000点券" type="1" extra="0" item="100000,2600" rmb="200.0" product="tjlhxkgddj200" productPuTao="qjqp014" agentLv="0"  notice="1"/>
+	<pay id="10" name="5000点券" type="1" extra="0" item="100000,7500" rmb="500.0" product="tjlhxkgddj500" productPuTao="qjqp015" agentLv="0"  notice="1"/>
+
+  <!--<pay id="101" name="1元大礼包" type="3" worth="58" item="100001,50000;100003,20;100002,20;100009,5;100010,1;100011,1" rmb="0.01" product="tjlhxkgddj001"/>
+  <pay id="102" name="6元大礼包" type="3" worth="98" item="100001,200000;100003,35;100002,35;100008,5;100010,1;100011,1" rmb="0.02" product="tjlhxkgddj006"/>
+  <pay id="103" name="19元大礼包" type="3" worth="118" item="100001,550000;100003,20;100002,20;100009,10;100008,5;100005,1" rmb="0.03" product="tjlhxkgddj019"/>
+  <pay id="104" name="39元大礼包" type="3" worth="169" item="100001,900000;100003,30;100002,30;100009,30;100008,5;100006,1" rmb="0.04" product="tjlhxkgddj039"/>
+  <pay id="105" name="68元大礼包" type="3" worth="238" item="100001,1500000;100003,50;100002,50;100009,35;100008,5;100006,1" rmb="0.05" product="tjlhxkgddj068"/>
+  
+	<pay id="101" name="1元大礼包" type="3" worth="58" item="100001,50000;100003,20;100002,20;100009,6" rmb="1.0" product="tjlhxkgddj001" productPuTao="qjqp005"  notice="0"/>-->
+	<pay id="102" name="6元大礼包" type="3" worth="98" item="100001,200000;100003,35;100002,35;100009,10" rmb="6.0" product="tjlhxkgddj006" productPuTao="qjqp006"  notice="0"/>
+	<pay id="103" name="19元大礼包" type="3" worth="118" item="100001,550000;100003,20;100002,20;100009,15" rmb="19.0" product="tjlhxkgddj019" productPuTao="qjqp007"  notice="1"/>
+	<pay id="104" name="39元大礼包" type="3" worth="169" item="100001,900000;100003,30;100002,30;100009,40" rmb="39.0" product="tjlhxkgddj039" productPuTao="qjqp008"  notice="1"/>
+	<pay id="105" name="68元大礼包" type="3" worth="238" item="100001,1500000;100003,50;100002,50;100009,45" rmb="68.0" product="tjlhxkgddj068" productPuTao="qjqp009"  notice="1"/>
+
+	<pay id="201" name="至尊月卡（31天）" type="2" des="18元获得至尊月卡，总共可领取920000金币！" day="31" item="100001,20000;100003,3;100002,3;100009,1" payitem="100001,300000"  rmb="18.0" product="tjlhxkgddj018" productPuTao="qjqp004"  notice="1"/>
+	<pay id="202" name="至尊年卡（365天）" type="2" des="129元获得至尊年卡，总共可领取10900000金币！" day="365" item="100001,20000;100003,3;100002,3;100009,1" payitem="100001,3600000"  rmb="129.0" product="tjlhxkgddj0129" productPuTao="qjqp00129" notice="1"/>
+  <pay id="301" name="每日首充礼包" type="4" des="每日首充礼包" item="100001,150000;100003,15;100002,15"  rmb="10.0" product="tjlhxkgddj010" productPuTao="qjqp003" notice="0"/>
+  <pay id="1001" name="超值礼包" type="5" des="超值礼包" startTime="1529208000" endTime="1529812800" cuccFlag="0" item="100001,200000;100010,5;100011,5"  rmb="9.9" product="zqhd_1001" productPuTao="qjqp001"/>
+	<!--开始：2018-06-17 12:00:00 结束：2018-06-24 12:00:00--> 
+ <pay id="1002" name="限时秒杀" type="5" des="限时秒杀" startTime="1526529600" endTime="1529208000" cuccFlag="0" item="100001,200000;100003,5;100000,50"  rmb="8.8" product="zqhd_1002" productPuTao="qjqp002" notice="0"/>
+	<!--开始：2018-05-17 12:00:00 结束：2018-06-17 12:00:00-->
+ <pay id="1003" name="充值大惊喜" type="5" des="充值大惊喜" startTime="1529812800" endTime="1530417600" cuccFlag="0" item="100001,200000;100003,5;100000,50"  rmb="9.9" product="zqhd_1003"/>
+	<!--开始：2018-06-24 12:00:00 结束：2018-07-01 12:00:00-->
+ <pay id="1004" name="夏日壕礼" type="5" des="夏日壕礼" startTime="1530417600" endTime="1533096000" cuccFlag="0" item="100001,200000;100010,5;100011,5"  rmb="8.8" product="zqhd_1004" productPuTao="qjqp0016"/>
+ 	<!--开始：2018-07-01 12:00:00 结束：2018-08-01 12:00:00--> 
+	
+	
+</root>
