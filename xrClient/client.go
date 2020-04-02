@@ -30,16 +30,16 @@ func (p *TcpClient) Init(log *xrLog.Log, recvBufMax uint32, eventChan chan inter
 }
 
 //发送数据(必须在处理EventChan事件中调用)
-func (p *TcpClient) Send(buf []byte) (err error) {
-	if !p.PeerConn.IsValid() {
-		return
-	}
-	var c xrTcpHandle.SendEventChan
-	c.Buf = buf
-	c.Peer = &p.PeerConn
-	p.PeerConn.SendChan <- &c
-	return err
-}
+//func (p *TcpClient) Send(buf []byte) (err error) {
+//	if !p.PeerConn.IsValid() {
+//		return
+//	}
+//	var c xrTcpHandle.SendEventChan
+//	c.Buf = buf
+//	c.Peer = &p.PeerConn
+//	p.PeerConn.SendChan <- &c
+//	return err
+//}
 
 //Connect 连接
 func (p *TcpClient) Connect(ip string, port uint16) (err error) {

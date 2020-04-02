@@ -29,6 +29,18 @@ func (p *Peer) Close() {
 	}
 }
 
+//发送数据(必须在处理EventChan事件中调用)
+func (p *Peer) Send(buf []byte) (err error) {
+	if !p.IsValid() {
+		return
+	}
+	var c SendEventChan
+	c.Buf = buf
+	c.Peer = p
+	p.SendChan <- &c
+	return err
+}
+
 //链接成功事件channel
 type ConnectEventChan struct {
 	Peer *Peer

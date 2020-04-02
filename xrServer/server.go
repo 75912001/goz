@@ -7,7 +7,7 @@ import (
 	"github.com/75912001/goz/xrLog"
 	"github.com/75912001/goz/xrTcpHandle"
 	"github.com/75912001/goz/xrTimer"
-	"github.com/smallnest/rpcx/log"
+	//	"github.com/smallnest/rpcx/log"
 )
 
 type TcpServer struct {
@@ -151,16 +151,16 @@ func (p *TcpServer) Run(address string, rwBuffLen int, packetLengthMax uint32) (
 }
 
 //发送数据(必须在处理EventChan事件中调用)
-func (p *TcpServer) Send(tcpPeer *xrTcpHandle.Peer, buf []byte) (err error) {
-	if !tcpPeer.IsValid() {
-		return
-	}
-	var c xrTcpHandle.SendEventChan
-	c.Buf = buf
-	c.Peer = tcpPeer
-	tcpPeer.SendChan <- &c
-	return err
-}
+//func (p *TcpServer) Send(tcpPeer *xrTcpHandle.Peer, buf []byte) (err error) {
+//	if !tcpPeer.IsValid() {
+//		return
+//	}
+//	var c xrTcpHandle.SendEventChan
+//	c.Buf = buf
+//	c.Peer = tcpPeer
+//	tcpPeer.SendChan <- &c
+//	return err
+//}
 
 //关闭链接
 func (p *TcpServer) CloseConn(tcpPeer *xrTcpHandle.Peer) (err error) {
@@ -200,7 +200,7 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn, packetLengthMax uint32) 
 	LoopRead:
 		readNum, err := tcpPeer.Conn.Read(buf[readIndex:])
 		if nil != err {
-			log.Error("tcpPeer.Conn.Read:", readNum, err)
+			p.log.Error("tcpPeer.Conn.Read:", readNum, err)
 			return
 		}
 

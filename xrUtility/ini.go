@@ -20,7 +20,7 @@ ini.Load("xxx.ini")
 ip := ini.GetString("server", "ip", "")
 */
 
-package zutility
+package xrUtility
 
 import (
 	"bufio"
