@@ -1,8 +1,10 @@
-package zprotobuf
+package xrProtobuf
 
 import (
+	"github.com/75912001/goz/xrLog"
 	"github.com/75912001/goz/zutility"
 	"github.com/golang/protobuf/proto"
+	"std/github.com/75912001/goz/xrUtility"
 )
 
 //MessageID 消息ID
@@ -14,11 +16,11 @@ type PacketLength uint32
 //PbFunMgr 管理器
 type PbFunMgr struct {
 	pbFunMap ProtoBufFunMap
-	log      *zutility.Log
+	log      *xrLog.Log
 }
 
 //Init 初始化管理器
-func (p *PbFunMgr) Init(v *zutility.Log) {
+func (p *PbFunMgr) Init(v *xrLog.Log) {
 	p.log = v
 	p.pbFunMap = make(ProtoBufFunMap)
 }
@@ -28,10 +30,9 @@ func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 	protoMessage proto.Message) (ret int) {
 	{
 		pbFunHandle := p.find(messageID)
-		//p.log.Trace(messageID)
 		if nil != pbFunHandle {
-			p.log.Error("MessageId exist:", messageID)
-			return zutility.ECSYS
+			p.log.Emerg("MessageId exist:", messageID)
+			return xrUtility.ECSYS
 		}
 	}
 	{
@@ -49,7 +50,7 @@ func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, recvBuf 
 	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
 		p.log.Error("MessageId inexist:", messageID)
-		return zutility.ECDisconnectPeer
+		return xrUtility.ECDisconnectPeer
 	}
 
 	err := proto.Unmarshal(recvBuf, *pbFunHandle.protoMessage)

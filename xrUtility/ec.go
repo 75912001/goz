@@ -1,5 +1,5 @@
 //错误码
-package zutility
+package xrUtility
 
 /*
 型号名称：	MacBook Pro

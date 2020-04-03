@@ -99,28 +99,32 @@ func (p *Ini) GetString(section string, key string, defaultValue string) (value 
 func (p *Ini) GetUint32(section string, key string, defaultValue uint32) (value uint32) {
 	def := strconv.FormatUint(uint64(defaultValue), 10)
 	str := p.GetString(section, key, def)
-	return StringToUint32(&str)
+	value, _ = StringToUint32(&str)
+	return value
 }
 
 //GetInt 获取int
 func (p *Ini) GetInt(section string, key string, defaultValue int) (value int) {
 	def := strconv.Itoa(defaultValue)
 	str := p.GetString(section, key, def)
-	return StringToInt(&str)
+	value, _ = StringToInt(&str)
+	return value
 }
 
 //GetUint16 获取uint16
 func (p *Ini) GetUint16(section string, key string, defaultValue uint16) (value uint16) {
 	def := strconv.FormatUint(uint64(defaultValue), 10)
 	str := p.GetString(section, key, def)
-	return StringToUint16(&str)
+	value, _ = StringToUint16(&str)
+	return value
 }
 
 //GetInt64 获取int64
 func (p *Ini) GetInt64(section string, key string, defaultValue int64) (value int64) {
 	def := strconv.FormatInt(int64(defaultValue), 10)
 	str := p.GetString(section, key, def)
-	return StringToInt64(&str)
+	value, _ = StringToInt64(&str)
+	return value
 }
 
 ////////////////////////////////////////////////////////////////////////////////
