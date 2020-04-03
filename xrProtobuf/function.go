@@ -2,9 +2,9 @@ package xrProtobuf
 
 import (
 	"github.com/75912001/goz/xrLog"
-	"github.com/75912001/goz/zutility"
+
+	"github.com/75912001/goz/xrUtility"
 	"github.com/golang/protobuf/proto"
-	"std/github.com/75912001/goz/xrUtility"
 )
 
 //MessageID 消息ID
@@ -46,7 +46,7 @@ func (p *PbFunMgr) Register(messageID MessageID, pbFun ProtoBufFun,
 }
 
 //OnRecv 收到消息
-func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, recvBuf []byte, obj interface{}) (ret int) {
+func (p *PbFunMgr) OnRecv(messageID MessageID, protoHead interface{}, recvBuf []byte, obj interface{}) (ret int) {
 	pbFunHandle, ok := p.pbFunMap[messageID]
 	if !ok {
 		p.log.Error("MessageId inexist:", messageID)
@@ -56,9 +56,9 @@ func (p *PbFunMgr) OnRecv(messageID MessageID, recvProtoHeadBuf []byte, recvBuf 
 	err := proto.Unmarshal(recvBuf, *pbFunHandle.protoMessage)
 	if nil != err {
 		p.log.Error("proto.Unmarshal:", messageID, err)
-		return zutility.ECDisconnectPeer
+		return xrUtility.ECDisconnectPeer
 	}
-	return pbFunHandle.pbFun(recvProtoHeadBuf, pbFunHandle.protoMessage, obj)
+	return pbFunHandle.pbFun(protoHead, pbFunHandle.protoMessage, obj)
 }
 
 type pbFunHandle struct {
@@ -70,7 +70,7 @@ type pbFunHandle struct {
 type ProtoBufFunMap map[MessageID]*pbFunHandle
 
 //ProtoBufFun 协议function
-type ProtoBufFun func(recvProtoHeadBuf []byte, protoMessage *proto.Message, obj interface{}) (ret int)
+type ProtoBufFun func(protoHead interface{}, protoMessage *proto.Message, obj interface{}) (ret int)
 
 func (p *PbFunMgr) find(messageID MessageID) (pbFunHandle *pbFunHandle) {
 	pbFunHandle, _ = p.pbFunMap[messageID]
