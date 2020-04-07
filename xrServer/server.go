@@ -84,7 +84,14 @@ func (p *TcpServer) Run(address string, rwBuffLen int, packetLengthMax uint32) (
 		}
 	}()
 
-	go func() {
+	go p.HandleEventChan()
+
+	for {
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (p *TcpServer) HandleEventChan() (err error) {
 		//处理数据
 		for v := range p.eventChan {
 			switch v.(type) {
@@ -143,13 +150,8 @@ func (p *TcpServer) Run(address string, rwBuffLen int, packetLengthMax uint32) (
 				p.log.Crit("no find event:", v)
 			}
 		}
-	}()
-
-	for {
-		time.Sleep(1 * time.Second)
-	}
+		return err
 }
-
 //发送数据(必须在处理EventChan事件中调用)
 //func (p *TcpServer) Send(tcpPeer *xrTcpHandle.Peer, buf []byte) (err error) {
 //	if !tcpPeer.IsValid() {

@@ -96,5 +96,4 @@ func HandleEventSend(sendChan chan interface{}, log *xrLog.Log) {
 			log.Crit("no find event:", v)
 		}
 	}
-
 }
