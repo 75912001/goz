@@ -1,10 +1,10 @@
-package zhttp
+package xrHttp
 
 import (
 	"net/http"
 	"strconv"
 
-	"github.com/75912001/goz/zutility"
+	"github.com/75912001/goz/xrLog"
 )
 
 /*
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	var gHttpServer zhttp.Server_t
+	var gHttpServer xrHttp.Server
 	gHttpServer.AddHandler("/PhoneRegister", PhoneRegisterHttpHandler)
 	go gHttpServer.Run(ip, port)
 }
@@ -25,7 +25,7 @@ func PhoneRegisterHttpHandler(w http.ResponseWriter, req *http.Request) {
 */
 
 //SetLog 设置log
-func SetLog(v *zutility.Log) {
+func SetLog(v *xrLog.Log) {
 	gLog = v
 }
 
@@ -56,4 +56,4 @@ func (this *Server) RunHttps(ip string, port uint16, certFile string, keyFile st
 	}
 }
 */
-var gLog *zutility.Log
+var gLog *xrLog.Log

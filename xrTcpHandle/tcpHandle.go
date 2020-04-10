@@ -4,6 +4,7 @@ import (
 	"net"
 	"sync"
 
+	"fmt"
 	"github.com/75912001/goz/xrLog"
 )
 
@@ -66,6 +67,15 @@ type RecvEventChanServer struct {
 type RecvEventChanClient struct {
 	Buf  []byte
 	Peer *Peer
+}
+
+//添加组播事件
+type AddrMulticastEvent struct{
+	Name string
+	ServerID uint32
+	IP string
+	Port uint16
+	Data string
 }
 
 //发送数据事件channel

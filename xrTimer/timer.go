@@ -49,6 +49,7 @@ func (p *TimerMgr) Run(millisecond int64, ifChan chan<- interface{}) {
 	p.millisecondList = list.New()
 
 	//每秒更新
+	//todo 操作共享数据？
 	go func() {
 		for {
 			time.Sleep(time.Second)
@@ -56,6 +57,7 @@ func (p *TimerMgr) Run(millisecond int64, ifChan chan<- interface{}) {
 		}
 	}()
 	//每millisecond个毫秒更新
+	//todo 操作共享数据?
 	go func() {
 		for {
 			time.Sleep(time.Duration(millisecond) * time.Millisecond)

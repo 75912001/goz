@@ -1,20 +1,21 @@
-package zudp
+package xrMulticast
 
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/75912001/goz/xrLog"
+	"github.com/75912001/goz/xrTcpHandle"
+	"github.com/75912001/goz/xrUtility"
+	"golang.org/x/net/ipv4"
 	"math/rand"
 	"net"
 	"strconv"
 	"time"
-
-	"github.com/75912001/goz/zutility"
-	"golang.org/x/net/ipv4"
 )
 
 //使用与libel匹配的组播协议
 
-var gLog *zutility.Log
+var gLog *xrLog.Log
 
 type serverAddr struct {
 	name string //32个byte
@@ -28,18 +29,18 @@ type serverNameMap map[string]serverIDMap
 
 //AddrMulticast 地址组播
 type AddrMulticast struct {
-	OnAddrMulticast func(name string, svr_id uint32, ip string, port uint16, data string)
-	conn            *net.UDPConn
-	mcaddr          *net.UDPAddr
-	serverMap       serverNameMap //服务器地址信息
-	addrBuffer      *bytes.Buffer //同步的服务器地址信息(发送数据)
-	selfServerAddr  serverAddr    //自己服务器地址信息
+	conn           *net.UDPConn
+	mcaddr         *net.UDPAddr
+	serverMap      serverNameMap    //服务器地址信息
+	addrBuffer     *bytes.Buffer    //同步的服务器地址信息(发送数据)
+	selfServerAddr serverAddr       //自己服务器地址信息
+	eventChan      chan interface{} //服务处理的事件
 }
 
 //Run 运行
 func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 	addrName string, addrID uint32, addrIP string, addrPort uint16, addrData string,
-	log *zutility.Log) (err error) {
+	log *xrLog.Log, eventChan chan interface{}) (err error) {
 
 	p.selfServerAddr.name = addrName
 	p.selfServerAddr.id = addrID
@@ -48,6 +49,8 @@ func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 	p.selfServerAddr.data = addrData
 
 	gLog = log
+
+	p.eventChan = eventChan
 	p.init()
 	var strAddr = ip + ":" + strconv.Itoa(int(port))
 	p.mcaddr, err = net.ResolveUDPAddr("udp4", strAddr)
@@ -146,13 +149,13 @@ func (p *AddrMulticast) handleRecv() {
 		bufSvrID := bytes.NewBuffer(recvBuf[4:8])
 		binary.Read(bufSvrID, binary.LittleEndian, &ser.id)
 
-		ser.name = zutility.Byte2String(recvBuf[8:40])
-		ser.ip = zutility.Byte2String(recvBuf[40:56])
+		ser.name = xrUtility.Byte2String(recvBuf[8:40])
+		ser.ip = xrUtility.Byte2String(recvBuf[40:56])
 
 		bufPort := bytes.NewBuffer(recvBuf[56:58])
 		binary.Read(bufPort, binary.LittleEndian, &ser.port)
 
-		ser.data = zutility.Byte2String(recvBuf[58:90])
+		ser.data = xrUtility.Byte2String(recvBuf[58:90])
 
 		if p.selfServerAddr.name != ser.name || p.selfServerAddr.id != ser.id {
 			if nil == p.find(ser.name, ser.id) {
@@ -161,10 +164,18 @@ func (p *AddrMulticast) handleRecv() {
 				p.add(ser.name, ser.id, &ser)
 			}
 
-			zutility.Lock()
+			{
+				var c xrTcpHandle.AddrMulticastEvent
+				c.Name = ser.name
+				c.ServerID = ser.id
 
-			p.OnAddrMulticast(ser.name, ser.id, ser.ip, ser.port, ser.data)
-			zutility.UnLock()
+				c.IP = ser.ip
+				c.Port = ser.port
+				c.Data = ser.data
+
+				p.eventChan <- &c
+			}
+
 		}
 	}
 }

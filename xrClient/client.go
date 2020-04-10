@@ -55,7 +55,7 @@ func (p *TcpClient) Connect(ip string, port uint16) (err error) {
 		return err
 	}
 
-	p.PeerConn.SendChan = make(chan interface{}, 1000)
+	p.PeerConn.SendChan = make(chan interface{}, 1024)
 
 	go p.recv()
 	return nil

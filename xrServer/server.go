@@ -2,12 +2,12 @@ package xrServer
 
 import (
 	"net"
+	"sync"
 	"time"
 
 	"github.com/75912001/goz/xrLog"
 	"github.com/75912001/goz/xrTcpHandle"
 	"github.com/75912001/goz/xrTimer"
-	//	"github.com/smallnest/rpcx/log"
 )
 
 type TcpServer struct {
@@ -17,8 +17,11 @@ type TcpServer struct {
 	OnPeerPacketServer     func(peerConn *xrTcpHandle.Peer, recvBuf []byte) int //对端包 基于自身是server
 	OnPeerPacketClient     func(peerConn *xrTcpHandle.Peer, recvBuf []byte) int //对端包 基于自身是client
 	OnParseProtoHead       func(buf []byte, length int) int                     //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
+	OnAddrMulticast 	   func(name string, svr_id uint32, ip string, port uint16, data string)
 	log                    *xrLog.Log
 	eventChan              chan interface{} //服务处理的事件
+	rwBuffLen 				int
+	packetLengthMax uint32
 }
 
 //初始化
@@ -32,7 +35,6 @@ func (p *TcpServer) Init(log *xrLog.Log, eventChan chan interface{}) {
 
 //运行服务
 //address:127.0.0.1:8787
-
 //rwBuffLen:tcp recv/send 缓冲大小
 //return:err
 //packetLengthMax:最大包长(包头+包体)
@@ -42,6 +44,9 @@ func (p *TcpServer) Run(address string, rwBuffLen int, packetLengthMax uint32) (
 		p.log.Emerg("net.ResolveTCPAddr:", err)
 		return err
 	}
+
+	p.rwBuffLen = rwBuffLen
+	p.packetLengthMax = packetLengthMax
 	//优化[设置地址复用]
 	//优化[设置监听的缓冲数量]
 
@@ -77,10 +82,7 @@ func (p *TcpServer) Run(address string, rwBuffLen int, packetLengthMax uint32) (
 			}
 			tempDelay = 0
 
-			conn.SetNoDelay(true)
-			conn.SetReadBuffer(rwBuffLen)
-			conn.SetWriteBuffer(rwBuffLen)
-			go p.handleConnection(conn, packetLengthMax)
+			go p.handleConnection(conn)
 		}
 	}()
 
@@ -98,6 +100,7 @@ func (p *TcpServer) HandleEventChan() (err error) {
 			case *xrTcpHandle.ConnectEventChan:
 				vv, ok := v.(*xrTcpHandle.ConnectEventChan)
 				if ok {
+					//fmt.Println("xrTcpHandle.ConnectEventChan:",vv)
 					p.OnPeerConn(vv.Peer)
 				}
 			case *xrTcpHandle.CloseConnectEventChanServer:
@@ -136,6 +139,11 @@ func (p *TcpServer) HandleEventChan() (err error) {
 					}
 					p.OnPeerPacketClient(vv.Peer, vv.Buf)
 				}
+			case *xrTcpHandle.AddrMulticastEvent:
+				vv, ok := v.(*xrTcpHandle.AddrMulticastEvent)
+				if ok {
+					p.OnAddrMulticast(vv.Name, vv.ServerID, vv.IP,vv.Port,vv.Data)
+				}
 			case *xrTimer.TimerSecond:
 				vv, ok := v.(*xrTimer.TimerSecond)
 				if ok {
@@ -146,6 +154,7 @@ func (p *TcpServer) HandleEventChan() (err error) {
 				if ok {
 					vv.Function(vv.Owner, vv.Data)
 				}
+
 			default:
 				p.log.Crit("no find event:", v)
 			}
@@ -165,17 +174,32 @@ func (p *TcpServer) HandleEventChan() (err error) {
 //}
 
 //关闭链接
-func (p *TcpServer) CloseConn(tcpPeer *xrTcpHandle.Peer) (err error) {
+func (p *TcpServer) CloseConnServer(tcpPeer *xrTcpHandle.Peer) (err error) {
 	var c xrTcpHandle.CloseConnectEventChanServer
 	c.Peer = tcpPeer
 	p.eventChan <- &c
 	return err
 }
 
-func (p *TcpServer) handleConnection(conn *net.TCPConn, packetLengthMax uint32) {
-	tcpPeer := new(xrTcpHandle.Peer)
+//关闭链接
+func (p *TcpServer) CloseConnClient(tcpPeer *xrTcpHandle.Peer) (err error) {
+	var c xrTcpHandle.CloseConnectEventChanClient
+	c.Peer = tcpPeer
+	p.eventChan <- &c
+	return err
+}
+var handleConnectioncnt int
+var handleConnectioncnt_lock     sync.RWMutex
+
+
+func (p *TcpServer) handleConnection(conn *net.TCPConn) {
+	conn.SetNoDelay(true)
+	conn.SetReadBuffer(p.rwBuffLen)
+	conn.SetWriteBuffer(p.rwBuffLen)
+
+	var tcpPeer =new(xrTcpHandle.Peer)
 	tcpPeer.Conn = conn
-	tcpPeer.SendChan = make(chan interface{}, 1000)
+	tcpPeer.SendChan = make(chan interface{}, 10)
 
 	tcpPeer.IP = tcpPeer.Conn.RemoteAddr().String()
 	p.log.Trace("connection from:", tcpPeer.IP)
@@ -186,17 +210,19 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn, packetLengthMax uint32) 
 		p.eventChan <- &c
 	}
 
+	var buf []byte
 	defer func() { //断开链接
 		var c xrTcpHandle.CloseConnectEventChanServer
 		c.Peer = tcpPeer
 		p.eventChan <- &c
+
+		buf = nil
 	}()
 
 	go xrTcpHandle.HandleEventSend(tcpPeer.SendChan, p.log)
 
 	//优化为内存池
-	var buf []byte
-	buf = make([]byte, packetLengthMax)
+	buf = make([]byte, p.packetLengthMax)
 	var readIndex int
 	for {
 	LoopRead:
@@ -235,7 +261,7 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn, packetLengthMax uint32) 
 		}
 	}
 }
-
+/*
 func HandleRecv(tcpPeer *xrTcpHandle.Peer, packetLengthMax uint32, log *xrLog.Log, eventChan chan interface{}, onParseProtoHead func(buf []byte, length int) int) {
 	//优化为内存池
 	var buf []byte
@@ -278,3 +304,4 @@ func HandleRecv(tcpPeer *xrTcpHandle.Peer, packetLengthMax uint32, log *xrLog.Lo
 		}
 	}
 }
+*/
