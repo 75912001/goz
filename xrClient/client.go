@@ -11,7 +11,7 @@ import (
 //Client 己方作为客户端
 type TcpClient struct {
 	OnParseProtoHead func(buf []byte, length int) int //解析协议包头 返回长度:完整包总长度  返回0:不是完整包 返回-1:包错误
-	PeerConn         xrTcpHandle.Peer                 //对端链接
+	Peer         xrTcpHandle.Peer                 //对端链接
 	recvBufMax       uint32                           //接受内存的最大尺寸
 	log              *xrLog.Log
 	eventChan        chan interface{} //服务处理的事件
@@ -49,13 +49,14 @@ func (p *TcpClient) Connect(ip string, port uint16) (err error) {
 		p.log.Crit("net.ResolveTCPAddr:", err, addr)
 		return err
 	}
-	p.PeerConn.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	p.Peer.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if nil != err {
 		p.log.Crit("net.Dial:", err, addr)
 		return err
 	}
 
-	p.PeerConn.SendChan = make(chan interface{}, 1024)
+	p.Peer.SendChan = make(chan interface{}, xrTcpHandle.GSendEventChanCnt)
+	go xrTcpHandle.HandleEventSend(p.Peer.SendChan, p.log)
 
 	go p.recv()
 	return nil
@@ -64,19 +65,17 @@ func (p *TcpClient) Connect(ip string, port uint16) (err error) {
 func (p *TcpClient) recv() {
 	defer func() { //断开链接
 		var c xrTcpHandle.CloseConnectEventChanClient
-		c.Peer = &p.PeerConn
+		c.Peer = &p.Peer
 		p.eventChan <- &c
 	}()
 
-	go xrTcpHandle.HandleEventSend(p.PeerConn.SendChan, p.log)
-
-	//优化为内存池
+	//todo 优化为内存池
 	var buf []byte
 	buf = make([]byte, p.recvBufMax)
 	var readIndex int
 	for {
 	LoopRead:
-		readNum, err := p.PeerConn.Conn.Read(buf[readIndex:])
+		readNum, err := p.Peer.Conn.Read(buf[readIndex:])
 		if nil != err {
 			p.log.Error("tcpPeer.Conn.Read:", readNum, err)
 			return
@@ -98,7 +97,7 @@ func (p *TcpClient) recv() {
 			{ //接受数据
 				var c xrTcpHandle.RecvEventChanClient
 				c.Buf = make([]byte, packetLength)
-				c.Peer = &p.PeerConn
+				c.Peer = &p.Peer
 				copy(c.Buf, buf[:packetLength])
 				p.eventChan <- &c
 			}

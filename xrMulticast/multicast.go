@@ -23,6 +23,7 @@ type serverAddr struct {
 	ip   string //16个byte
 	port uint16
 	data string //32个byte
+	first uint8
 }
 type serverIDMap map[uint32]*serverAddr
 type serverNameMap map[string]serverIDMap
@@ -33,6 +34,7 @@ type AddrMulticast struct {
 	mcaddr         *net.UDPAddr
 	serverMap      serverNameMap    //服务器地址信息
 	addrBuffer     *bytes.Buffer    //同步的服务器地址信息(发送数据)
+	addrFirstBuffer *bytes.Buffer //同步的服务器地址信息(发送数据)标记第一次发送数据
 	selfServerAddr serverAddr       //自己服务器地址信息
 	eventChan      chan interface{} //服务处理的事件
 }
@@ -89,35 +91,58 @@ func (p *AddrMulticast) Run(ip string, port uint16, netName string,
 		}
 	}
 
+	var first uint8//1:第一次发送 0:平常发送
 	var cmd uint32 = 2
 	var arrName [32]byte
 	var arrIP [16]byte
 	var arrData [32]byte
+
 	copy(arrName[:], addrName)
 	copy(arrIP[:], addrIP)
 	copy(arrData[:], addrData)
 
-	p.addrBuffer = new(bytes.Buffer)
-	binary.Write(p.addrBuffer, binary.LittleEndian, cmd)
-	binary.Write(p.addrBuffer, binary.LittleEndian, addrID)
-	binary.Write(p.addrBuffer, binary.LittleEndian, arrName)
-	binary.Write(p.addrBuffer, binary.LittleEndian, arrIP)
-	binary.Write(p.addrBuffer, binary.LittleEndian, addrPort)
-	binary.Write(p.addrBuffer, binary.LittleEndian, arrData)
+{
+	first = 1
+	p.addrFirstBuffer = new(bytes.Buffer)
+
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, cmd)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, addrID)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, arrName)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, arrIP)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, addrPort)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, arrData)
+	binary.Write(p.addrFirstBuffer, binary.LittleEndian, first)
+}
+	{
+		first = 0
+		p.addrBuffer = new(bytes.Buffer)
+
+		binary.Write(p.addrBuffer, binary.LittleEndian, cmd)
+		binary.Write(p.addrBuffer, binary.LittleEndian, addrID)
+		binary.Write(p.addrBuffer, binary.LittleEndian, arrName)
+		binary.Write(p.addrBuffer, binary.LittleEndian, arrIP)
+		binary.Write(p.addrBuffer, binary.LittleEndian, addrPort)
+		binary.Write(p.addrBuffer, binary.LittleEndian, arrData)
+		binary.Write(p.addrBuffer, binary.LittleEndian, first)
+	}
+
 
 	go p.handleRecv()
 	go func() {
 		for {
 			p.doAddrSYN()
-			//20-40sec 发送一次
-			time.Sleep(time.Duration(rand.Intn(20)+20) * time.Second)
+			p.addrFirstBuffer = p.addrBuffer
+
+			//10-20sec 发送一次
+			time.Sleep(time.Duration(rand.Intn(10)+10) * time.Second)
 		}
 	}()
 	return err
 }
 
 func (p *AddrMulticast) doAddrSYN() {
-	_, err := p.conn.WriteToUDP(p.addrBuffer.Bytes(), p.mcaddr)
+	_, err := p.conn.WriteToUDP(p.addrFirstBuffer.Bytes(), p.mcaddr)
+
 	if nil != err {
 		gLog.Error("PeerConn.Conn.Write:", err)
 		return
@@ -157,12 +182,21 @@ func (p *AddrMulticast) handleRecv() {
 
 		ser.data = xrUtility.Byte2String(recvBuf[58:90])
 
-		if p.selfServerAddr.name != ser.name || p.selfServerAddr.id != ser.id {
-			if nil == p.find(ser.name, ser.id) {
-				p.doAddrSYN()
+		first := bytes.NewBuffer(recvBuf[90:91])
+		binary.Read(first, binary.LittleEndian, &ser.first)
 
+		if p.selfServerAddr.name != ser.name || p.selfServerAddr.id != ser.id {
+			if  1 == ser.first {
+				p.doAddrSYN()
 				p.add(ser.name, ser.id, &ser)
+			} else {
+				if nil == p.find(ser.name, ser.id) {
+					p.doAddrSYN()
+
+					p.add(ser.name, ser.id, &ser)
+				}
 			}
+
 
 			{
 				var c xrTcpHandle.AddrMulticastEvent
@@ -175,7 +209,6 @@ func (p *AddrMulticast) handleRecv() {
 
 				p.eventChan <- &c
 			}
-
 		}
 	}
 }

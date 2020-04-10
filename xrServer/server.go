@@ -2,7 +2,7 @@ package xrServer
 
 import (
 	"net"
-	"sync"
+
 	"time"
 
 	"github.com/75912001/goz/xrLog"
@@ -105,24 +105,14 @@ func (p *TcpServer) HandleEventChan() (err error) {
 				}
 			case *xrTcpHandle.CloseConnectEventChanServer:
 				vv, ok := v.(*xrTcpHandle.CloseConnectEventChanServer)
-				vv.Peer.Lock.Lock()
 				if ok {
-					if vv.Peer.IsValid() {
-						p.OnPeerConnClosedServer(vv.Peer)
-					}
+					p.CloseConnServer(vv.Peer)
 				}
-				vv.Peer.Close()
-				vv.Peer.Lock.Unlock()
 			case *xrTcpHandle.CloseConnectEventChanClient:
 				vv, ok := v.(*xrTcpHandle.CloseConnectEventChanClient)
-				vv.Peer.Lock.Lock()
 				if ok {
-					if vv.Peer.IsValid() {
-						p.OnPeerConnClosedClient(vv.Peer)
-					}
+					p.CloseConnClient(vv.Peer)
 				}
-				vv.Peer.Close()
-				vv.Peer.Lock.Unlock()
 			case *xrTcpHandle.RecvEventChanServer:
 				vv, ok := v.(*xrTcpHandle.RecvEventChanServer)
 				if ok {
@@ -161,36 +151,47 @@ func (p *TcpServer) HandleEventChan() (err error) {
 		}
 		return err
 }
+
 //发送数据(必须在处理EventChan事件中调用)
-//func (p *TcpServer) Send(tcpPeer *xrTcpHandle.Peer, buf []byte) (err error) {
-//	if !tcpPeer.IsValid() {
-//		return
-//	}
-//	var c xrTcpHandle.SendEventChan
-//	c.Buf = buf
-//	c.Peer = tcpPeer
-//	tcpPeer.SendChan <- &c
-//	return err
-//}
+func Send(peer *xrTcpHandle.Peer, buf []byte) (err error) {
+	if !peer.IsValid() {
+		return
+	}
+	var c xrTcpHandle.SendEventChan
+	c.Buf = buf
+	c.Peer = peer
+	peer.SendChan <- &c
+	return err
+}
+//立刻关闭链接
+func (p *TcpServer) CloseConnServer(peer *xrTcpHandle.Peer) (err error) {
+	peer.Lock.Lock()
 
-//关闭链接
-func (p *TcpServer) CloseConnServer(tcpPeer *xrTcpHandle.Peer) (err error) {
-	var c xrTcpHandle.CloseConnectEventChanServer
-	c.Peer = tcpPeer
-	p.eventChan <- &c
+	if peer.IsValid() {
+		p.OnPeerConnClosedServer(peer)
+
+		peer.Conn.Close()
+		peer.Conn = nil
+		close(peer.SendChan)
+	}
+	peer.Lock.Unlock()
 	return err
 }
 
-//关闭链接
-func (p *TcpServer) CloseConnClient(tcpPeer *xrTcpHandle.Peer) (err error) {
-	var c xrTcpHandle.CloseConnectEventChanClient
-	c.Peer = tcpPeer
-	p.eventChan <- &c
+//立刻关闭链接
+func (p *TcpServer) CloseConnClient(peer *xrTcpHandle.Peer) (err error) {
+	peer.Lock.Lock()
+
+	if peer.IsValid() {
+		p.OnPeerConnClosedClient(peer)
+
+		peer.Conn.Close()
+		peer.Conn = nil
+		close(peer.SendChan)
+	}
+	peer.Lock.Unlock()
 	return err
 }
-var handleConnectioncnt int
-var handleConnectioncnt_lock     sync.RWMutex
-
 
 func (p *TcpServer) handleConnection(conn *net.TCPConn) {
 	conn.SetNoDelay(true)
@@ -199,7 +200,7 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn) {
 
 	var tcpPeer =new(xrTcpHandle.Peer)
 	tcpPeer.Conn = conn
-	tcpPeer.SendChan = make(chan interface{}, 10)
+	tcpPeer.SendChan = make(chan interface{}, xrTcpHandle.GSendEventChanCnt)
 
 	tcpPeer.IP = tcpPeer.Conn.RemoteAddr().String()
 	p.log.Trace("connection from:", tcpPeer.IP)
@@ -221,7 +222,7 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn) {
 
 	go xrTcpHandle.HandleEventSend(tcpPeer.SendChan, p.log)
 
-	//优化为内存池
+	//todo 优化为内存池
 	buf = make([]byte, p.packetLengthMax)
 	var readIndex int
 	for {
@@ -261,47 +262,3 @@ func (p *TcpServer) handleConnection(conn *net.TCPConn) {
 		}
 	}
 }
-/*
-func HandleRecv(tcpPeer *xrTcpHandle.Peer, packetLengthMax uint32, log *xrLog.Log, eventChan chan interface{}, onParseProtoHead func(buf []byte, length int) int) {
-	//优化为内存池
-	var buf []byte
-	buf = make([]byte, packetLengthMax)
-	var readIndex int
-	for {
-	LoopRead:
-		readNum, err := tcpPeer.Conn.Read(buf[readIndex:])
-		if nil != err {
-			log.Error("tcpPeer.Conn.Read:", readNum, err)
-			return
-		}
-
-		readIndex += readNum
-
-		for {
-			packetLength := onParseProtoHead(buf, readIndex)
-			if 0 == packetLength {
-				goto LoopRead
-			}
-
-			if -1 == packetLength {
-				log.Error("packetLength")
-				return
-			}
-
-			{ //接受数据
-				var c xrTcpHandle.RecvEventChanServer
-				c.Buf = make([]byte, packetLength)
-				c.Peer = tcpPeer
-				copy(c.Buf, buf[:packetLength])
-				eventChan <- &c
-			}
-			copy(buf, buf[packetLength:readIndex])
-			readIndex -= packetLength
-
-			if 0 == readIndex {
-				goto LoopRead
-			}
-		}
-	}
-}
-*/

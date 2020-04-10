@@ -4,10 +4,12 @@ import (
 	"net"
 	"sync"
 
-	"fmt"
+
 	"github.com/75912001/goz/xrLog"
 )
 
+//发送chan大小
+var GSendEventChanCnt uint32 = 128
 //Peer 对端连接信息
 type Peer struct {
 	Conn     *net.TCPConn //连接
@@ -19,27 +21,6 @@ type Peer struct {
 //连接是否有效
 func (p *Peer) IsValid() bool {
 	return nil != p.Conn
-}
-
-//关闭链接
-func (p *Peer) Close() {
-	if nil != p.Conn {
-		p.Conn.Close()
-		p.Conn = nil
-		close(p.SendChan)
-	}
-}
-
-//发送数据(必须在处理EventChan事件中调用)
-func (p *Peer) Send(buf []byte) (err error) {
-	if !p.IsValid() {
-		return
-	}
-	var c SendEventChan
-	c.Buf = buf
-	c.Peer = p
-	p.SendChan <- &c
-	return err
 }
 
 //链接成功事件channel

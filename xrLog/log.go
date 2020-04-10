@@ -192,5 +192,5 @@ func (p *Log) outPut(calldepth int, prefix *string, str *string) {
 	p.logChan <- "[" + *prefix + "][" + funName + "][" + strLine + "]" + *str
 	//	s := "[" + *prefix + "][" + funName + "][" + strLine + "]" + *str
 	//	p.logChan <- &s
-
+	fmt.Println("[" + *prefix + "][" + funName + "][" + strLine + "]" + *str)
 }
