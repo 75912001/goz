@@ -1,8 +1,6 @@
 package xrUtility
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"hash/fnv"
 	"runtime"
@@ -11,14 +9,6 @@ import (
 //通道,接口
 //type IFChan interface {
 //}
-
-//GenMd5 生成md5
-func GenMd5(s *string) (value string) {
-	md5Ctx := md5.New()
-	md5Ctx.Write([]byte(*s))
-	cipherStr := md5Ctx.Sum(nil)
-	return hex.EncodeToString(cipherStr)
-}
 
 //HASH32
 func HASH32(s *string) uint32 {
