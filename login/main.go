@@ -82,65 +82,6 @@ const isTest = false
 
 func main() {
 
-	/*
-		var k_map map[string]interface{}
-		k_map = make(map[string]interface{}, 0)
-		var t xml.Token
-		var err error
-		strxml2 = strings.Replace(strxml2, "\n", "", -1)
-		inputReader := strings.NewReader(strxml2)
-		decoder := xml.NewDecoder(inputReader)
-		var str_name string
-		var str_val string
-		for t, err = decoder.Token(); err == nil; t, err = decoder.Token() {
-			switch token := t.(type) {
-			case xml.StartElement:
-				str_name = token.Name.Local
-			case xml.CharData:
-				str_val = string([]byte(token))
-				k_map[str_name] = str_val
-			default:
-			}
-		}
-		fmt.Println(k_map)
-	*/
-
-	////////////////////////////////////////////////////////////////////////////
-	//时间戳
-	nowTimeSec := time.Now().Unix()
-	rand.Seed(nowTimeSec)
-	fmt.Println(time.Now().Unix(), time.Now().UnixNano())
-
-	yyyymm := time.Now().Format("200601")
-	fmt.Println(yyyymm)
-
-	///////////////////////////////////////////////////////////////////
-	//测试
-	///////////////////////////////////////////////////////////////////
-	/*
-	 */
-	///////////////////////////////////////////////////////////////////
-	//加载配置文件bench.ini
-	{
-		gIni = new(zutility.Ini)
-		err := gIni.Load("./bench.ini")
-		if nil != err {
-			fmt.Println("load bench.ini err!")
-			return
-		}
-	}
-
-	gWxAppid = gIni.GetString("login", "wx_appid", "")
-	gWxSecret = gIni.GetString("login", "wx_secret", "")
-	gWxHeadSize = gIni.GetString("login", "wx_head_size", "64")
-
-	serverIP := gIni.GetString("server", "ip", "")
-	serverPort := gIni.GetUint16("server", "port", 0)
-	//	server_name := gIni.GetString("server", "name", "")
-	//	server_id := gIni.GetUint32("server", "id", 0)
-	gPlatform = gIni.GetUint32("server", "platform", 0)
-
-	logLevel := gIni.GetUint32("common", "log_level", 0)
 
 	////////////////////////////////////////////////////////////////////////////
 	//log
@@ -290,9 +231,8 @@ func main() {
 		//运行
 		delay := true
 
-		gServer.PacketLengthMax = gIni.GetUint32("common", "packet_length_max", 81920)
-		goProcessMax := gIni.GetInt("common", "go_process_max", runtime.NumCPU())
-		runtime.GOMAXPROCS(goProcessMax)
+
+
 		if 0 != serverPort {
 			gLog.Trace(serverIP, serverPort, delay)
 			go gServer.Run(serverIP, serverPort, delay, 1000)
